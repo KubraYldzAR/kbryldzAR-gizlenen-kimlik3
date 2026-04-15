@@ -1,52 +1,44 @@
+<!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-prod.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <link rel="stylesheet" href="styles.css">
     <style>
-      /* Senin istediğin yarı saydam referans görsel */
-      #referans-gorsel {
-        position: fixed; top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        width: 70vw; opacity: 0.5; z-index: 999;
-        pointer-events: none;
-      }
-      /* MindAR'ın kendi yazılarını gizle */
-      .mindar-ui-scanning, .mindar-ui-loading { display: none !important; }
+      body { margin: 0; overflow: hidden; }
+      /* Yükleme ekranı veya UI elemanları buraya gelebilir */
     </style>
   </head>
   <body>
 
-    <div id="referans-gorsel">
-      <img src="IMG_0127.png" style="width: 100%;">
-    </div>
-
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind;" 
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
       
+      <a-assets>
+        <a-asset-item id="avatarModel" src="./elifiki.glb"></a-asset-item>
+      </a-assets>
+
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" id="hedef">
+      <a-entity mindar-image-target="targetIndex: 0">
         <a-gltf-model 
-          src="elifiki.glb" 
+          src="#avatarModel" 
+          rotation="0 0 0" 
           position="0 0 0" 
-          scale="0.1 0.1 0.1" 
-          animation-mixer>
+          scale="0.1 0.1 0.1">
         </a-gltf-model>
       </a-entity>
     </a-scene>
 
-    <script>
-      const ref = document.querySelector('#referans-gorsel');
-      const hedef = document.querySelector('#hedef');
+    <div id="scanning-overlay" style="display: none;">
+        </div>
 
-      hedef.addEventListener("targetFound", () => { ref.style.display = "none"; });
-      hedef.addEventListener("targetLost", () => { ref.style.display = "block"; });
-    </script>
+    <script src="script.js"></script>
   </body>
 </html>
