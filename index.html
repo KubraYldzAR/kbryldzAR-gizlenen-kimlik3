@@ -8,73 +8,61 @@
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
-    <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
+      body { margin: 0; overflow: hidden; background: #000; }
       
-      /* Kullanıcı Arayüzü Katmanı */
       #ui-container {
         position: fixed;
-        bottom: 0; left: 0;
+        top: 0; left: 0;
         width: 100%; height: 100%;
-        z-index: 1000;
-        pointer-events: none; /* Altındaki kamerayı engellememesi için */
+        z-index: 9999;
+        pointer-events: none;
       }
 
-      /* 1. TALEP: Sayfa Yüklenince Kamerayı Başlatan Ana Buton (Slot stili korundu) */
+      /* BAŞLAT BUTONU */
       #ar-start-button {
         position: absolute;
-        bottom: 40px; left: 50%;
+        bottom: 50px; left: 50%;
         transform: translateX(-50%);
-        padding: 16px 30px;
-        background-color: #ffcc00; /* Sarı renk korundu */
+        padding: 20px 40px;
+        background-color: #ffcc00;
         border: none;
-        border-radius: 30px;
+        border-radius: 40px;
         color: black;
         font-weight: bold;
-        font-size: 16px;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        font-size: 18px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
         cursor: pointer;
-        pointer-events: auto; /* Tıklanabilir yap */
-        z-index: 1001;
-      }
-
-      /* 2. TALEP: Taranacak Dosya Referansı (IMG_0127) */
-      #scanning-prompt {
-        display: none; /* Başlangıçta gizli */
-        position: absolute;
-        top: 50%; left: 50%;
-        transform: translate(-50%, -50%);
-        width: 80%;
-        height: auto;
-        opacity: 0.6; /* Yarı saydam */
-        pointer-events: none;
-        z-index: 1001;
-      }
-      #scanning-prompt img {
-        width: 100%;
-        height: auto;
+        pointer-events: auto; /* Tıklamayı aktif eder */
         display: block;
       }
 
-      /* 3. TALEP: Orijinal Screenshot Butonu Stili (Sarı Çerçeve) */
+      /* REFERANS RESİM (IMG_0127) */
+      #scanning-prompt {
+        display: none;
+        position: absolute;
+        top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        width: 70%;
+        opacity: 0.5;
+        pointer-events: none;
+      }
+
+      /* EKRAN GÖRÜNTÜSÜ BUTONU */
       #screenshot-btn {
-        display: none; /* Sadece resim bulunca gösterilecek */
+        display: none; 
         position: absolute;
         bottom: 30px; right: 30px;
-        width: 70px; height: 70px;
+        width: 80px; height: 80px;
         border-radius: 50%;
         background-color: white;
-        border: 5px solid #ffcc00; /* Sarı çerçeve */
+        border: 6px solid #ffcc00;
         cursor: pointer;
-        pointer-events: auto; /* Tıklanabilir yap */
-        z-index: 1002;
-        font-size: 30px;
+        pointer-events: auto;
+        font-size: 35px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         align-items: center; justify-content: center;
-        outline: none;
       }
-      #screenshot-btn:active { transform: scale(0.9); }
     </style>
   </head>
   <body>
@@ -99,8 +87,7 @@
           src="#avatarModel" 
           rotation="0 0 0" 
           position="0 0 0" 
-          scale="0.1 0.1 0.1"
-          animation-mixer="clip: Animation; loop: repeat">
+          scale="0.1 0.1 0.1">
         </a-gltf-model>
       </a-entity>
     </a-scene>
@@ -109,7 +96,7 @@
       <button id="ar-start-button">AR DENEYİMİNE BAŞLA</button>
       
       <div id="scanning-prompt">
-          <img src="IMG_0127.png" alt="Tarama Referansı">
+          <img src="IMG_0127.png" style="width: 100%;">
       </div>
 
       <button type="button" id="screenshot-btn">📸</button>
@@ -121,51 +108,54 @@
       const screenshotBtn = document.querySelector('#screenshot-btn');
       const scanningPrompt = document.querySelector('#scanning-prompt');
       const targetEntity = document.querySelector('#target');
+      const modelEl = document.querySelector("#model");
 
-      // 1. AR'I BAŞLAT VE REFERANS RESMİ GÖSTER
+      // KAMERAYI BAŞLATMA FONKSİYONU
       startButton.addEventListener('click', () => {
-        startButton.style.display = 'none'; // Başla butonunu gizle
-        scanningPrompt.style.display = 'block'; // IMG_0127 referansını göster
+        console.log("Başlatma deneniyor...");
         
-        // MindAR sistemini başlat
-        sceneEl.systems['mindar-image-system'].start();
-        console.log("MindAR Kamerasını Açıyor...");
+        // Kamera sistemini zorla başlat
+        const startAR = () => {
+            sceneEl.systems['mindar-image-system'].start();
+            startButton.style.display = 'none';
+            scanningPrompt.style.display = 'block';
+        };
+
+        // Eğer sahne yüklendiyse hemen başlat, yüklenmediyse yüklenmesini bekle
+        if (sceneEl.hasLoaded) {
+            startAR();
+        } else {
+            sceneEl.addEventListener('loaded', startAR);
+        }
       });
 
-      // 2. RESİM BULUNDUĞUNDA (IMG_0127 yok olur, Model gelir)
-      targetEntity.addEventListener("targetFound", event => {
-        scanningPrompt.style.display = 'none'; // Referans resmi yok et
-        screenshotBtn.style.display = "flex"; // Fotoğraf butonunu göster
-        startAnim(); // Animasyonu başlat
+      // HEDEF BULUNDUĞUNDA
+      targetEntity.addEventListener("targetFound", () => {
+        scanningPrompt.style.display = 'none';
+        screenshotBtn.style.display = "flex";
+        
+        // Animasyonları başlat
+        modelEl.setAttribute('animation-mixer', 'clip: Animation; loop: repeat');
+        setTimeout(() => {
+          modelEl.setAttribute('animation-mixer', 'clip: Scene; loop: repeat');
+        }, 150);
       });
 
-      // 3. RESİM KAYBOLDUĞUNDA (Referans geri gelir)
-      targetEntity.addEventListener("targetLost", event => {
-        scanningPrompt.style.display = 'block'; // Referansı geri getir
-        screenshotBtn.style.display = "none"; // Fotoğraf butonunu gizle
+      // HEDEF KAYBOLDUĞUNDA
+      targetEntity.addEventListener("targetLost", () => {
+        scanningPrompt.style.display = 'block';
+        screenshotBtn.style.display = "none";
       });
 
-      // 4. EKRAN GÖRÜNTÜSÜ ALMA (Orijinal Mantık)
+      // EKRAN GÖRÜNTÜSÜ
       screenshotBtn.addEventListener('click', () => {
-        const scene = document.querySelector('a-scene');
-        const canvas = scene.components.screenshot.getCanvas('perspective');
+        const canvas = sceneEl.components.screenshot.getCanvas('perspective');
         const dataURL = canvas.toDataURL("image/png");
-        
         const link = document.createElement('a');
-        link.download = `AR_Hatira_${new Date().getTime()}.png`;
+        link.download = `AR_Hatira.png`;
         link.href = dataURL;
         link.click();
       });
-
-      // 5. ANİMASYON MANTIĞI (Orijinal Gecikmeli Geçiş)
-      const startAnim = () => {
-        const modelEl = document.querySelector("#model");
-        modelEl.setAttribute('animation-mixer', 'clip', 'Animation'); // Önce "Animation"
-        
-        setTimeout(() => {
-          modelEl.setAttribute('animation-mixer', 'clip', 'Scene'); // 100ms sonra "Scene"
-        }, 100);
-      };
     </script>
   </body>
 </html>
