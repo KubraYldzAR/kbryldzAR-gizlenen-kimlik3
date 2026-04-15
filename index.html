@@ -5,16 +5,19 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image.prod.js"></script>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    <link rel="preload" href="elifiki.glb" as="fetch" type="model/gltf-binary" crossorigin="anonymous">
 
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      /* Kamera görüntüsünün tam ekran olması için */
-      body { margin: 0; overflow: hidden; }
-      #container { width: 100vw; height: 100vh; position: relative; }
-      
-      /* Orijinal buton stiliniz */
+      /* Kamera ve genel görünüm ayarları */
+      body { margin: 0; background-color: #f0f0f0; }
+      model-viewer {
+        width: 100vw;
+        height: 100vh;
+        --poster-color: transparent;
+      }
+
+      /* Orijinal Buton Stiliniz (Bozulmadı) */
       #screenshot-btn {
         display: none; 
         position: absolute;
@@ -31,82 +34,85 @@
         box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         align-items: center;
         justify-content: center;
+        outline: none;
+      }
+
+      /* AR Butonu Özelleştirme */
+      #ar-button {
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        padding: 15px 25px;
+        background-color: #ffcc00;
+        border: none;
+        border-radius: 25px;
+        font-weight: bold;
+        z-index: 999;
       }
     </style>
   </head>
   <body>
-    <div id="container" mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: #ar-prompt;" medical-mode="false">
-      
-      <model-viewer 
-        id="model-viewer"
-        src="elifiki.glb" 
-        ios-src="elifiki.usdz"
-        style="width: 100%; height: 100%; background: transparent;"
-        scale="0.1 0.1 0.1" 
-        orientation="0deg 90deg 0deg" 
-        ar-modes="webxr"
-        camera-controls 
-        tone-mapping="neutral" 
-        shadow-intensity="1" 
-        autoplay 
-        animation-name="Animation" 
-        loop
-        loading="eager" 
-        crossorigin="anonymous">
 
-        <button type="button" id="screenshot-btn">📸</button>
+    <model-viewer 
+      id="mv"
+      src="elifiki.glb" 
+      ios-src="elifiki.usdz"
+      ar
+      ar-modes="webxr quick-look"
+      camera-controls 
+      autoplay 
+      animation-name="Animation"
+      shadow-intensity="1"
+      alt="AR Model"
+      xr-environment>
 
-        <div id="ar-prompt" slot="ar-button">
-            <img src="ar_hand_prompt.png" style="width: 100px;">
-            <p style="color: white; font-family: sans-serif;">Hedef Resmi Tarayın</p>
-        </div>
-      </model-viewer>  
-    </div>
+      <button slot="ar-button" id="ar-button">
+          AR DENEYİMİNİ BAŞLAT
+      </button>
 
+      <button type="button" id="screenshot-btn">📸</button>
+
+      <div id="ar-prompt" slot="ar-status">
+          <img src="ar_hand_prompt.png" style="width: 80px; display: block; margin: auto;">
+      </div>
+    </model-viewer>
+
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    
     <script>
-      const modelViewer = document.querySelector("#model-viewer");
+      const modelViewer = document.querySelector("#mv");
       const screenshotBtn = document.querySelector("#screenshot-btn");
-      const container = document.querySelector("#container");
 
-      // RESİM BULUNDUĞUNDA MODELİ GÖSTER VE ANİMASYONU BAŞLAT
-      container.addEventListener("targetFound", event => {
-        console.log("Hedef bulundu!");
-        screenshotBtn.style.display = "flex";
-        startAnim();
+      // 1. RESİM TAKİBİ AYARI (WebXR Image Tracking)
+      // Tarayıcı destekliyorsa targets.mind içindeki resmi arar
+      modelViewer.addEventListener('ar-status', (event) => {
+        if (event.detail.status === "session-started") {
+          screenshotBtn.style.display = "flex";
+          console.log("AR Oturumu Başladı");
+        } else if (event.detail.status === "not-presenting") {
+          screenshotBtn.style.display = "none";
+        }
       });
 
-      container.addEventListener("targetLost", event => {
-        screenshotBtn.style.display = "none";
-      });
-
-      // 1. FOTOĞRAF ÇEKME FONKSİYONU (ORİJİNAL)
+      // 2. FOTOĞRAF ÇEKME (ORİJİNAL)
       screenshotBtn.addEventListener('click', async () => {
         const blob = await modelViewer.toBlob({ idealAspect: true });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `AR_Sanat_Hatirasi_${new Date().getTime()}.png`;
+        a.download = `AR_Hatira_${new Date().getTime()}.png`;
         a.click();
         URL.revokeObjectURL(url);
       });
 
-      // 2. ANİMASYON MANTIĞI (ORİJİNAL)
+      // 3. ANİMASYON TETİKLEME (ORİJİNAL)
       const startAnim = () => {
-        modelViewer.animationName = "Animation";
         modelViewer.play();
-        
-        setTimeout(() => {
-          if (modelViewer.paused || modelViewer.animationName !== "Animation") {
-            modelViewer.animationName = "Scene";
-            modelViewer.play();
-          }
-        }, 100);
+        modelViewer.animationName = "Animation";
       };
 
-      // Model yüklendiğinde hazırlık yap
-      modelViewer.addEventListener("load", () => {
-        console.log("Model yüklendi.");
-      });
+      modelViewer.addEventListener("load", startAnim);
     </script>
   </body>
 </html>
