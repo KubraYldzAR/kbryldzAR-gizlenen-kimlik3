@@ -13,7 +13,7 @@
 
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      /* Senin Orijinal Fotoğraf Butonu Stilin */
+      /* SENİN ORİJİNAL FOTOĞRAF BUTONU STİLİN */
       #screenshot-btn {
         display: none;
         position: absolute; bottom: 30px; right: 30px;
@@ -24,13 +24,13 @@
         align-items: center; justify-content: center;
       }
       
-      /* Yarı Saydam Referans Resmi */
+      /* YARI SAYDAM REHBER RESİM */
       #guide-overlay {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 70%; opacity: 0.4; pointer-events: none; z-index: 1500; display: none;
       }
 
-      /* AR Sahne Gizleme */
+      /* AR SAHNE GİZLEME */
       #ar-scene { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; }
     </style>
   </head>
@@ -51,7 +51,7 @@
       loop>
 
       <button slot="ar-button" id="ar-button">
-          AR Denemek İçin Tıkla
+          Kendi Alanınızda Görüntüleyin
       </button>
 
       <button type="button" id="start-trace-btn" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 15px 30px; background: #ffcc00; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; z-index: 100;">
@@ -79,6 +79,7 @@
       </a-entity>
     </a-scene>
 
+    <script src="script.js"></script>
     <script>
       const modelViewer = document.querySelector("#main-viewer");
       const startTraceBtn = document.querySelector("#start-trace-btn");
@@ -86,15 +87,15 @@
       const guide = document.querySelector("#guide-overlay");
       const screenshotBtn = document.querySelector("#screenshot-btn");
 
-      // IMAGE TRACE MODUNU BAŞLATMA
+      // KAMERA MODUNA GEÇİŞ (Image Trace Başlat)
       startTraceBtn.addEventListener('click', () => {
-        modelViewer.style.display = 'none'; // Beyaz ekranı kapat
-        arScene.style.display = 'block';    // Kamerayı aç
-        guide.style.display = 'block';      // Rehber resmi göster
+        modelViewer.style.display = 'none';
+        arScene.style.display = 'block';
+        guide.style.display = 'block';
         arScene.systems["mindar-image-system"].start();
       });
 
-      // RESİM ALGILAMA DURUMLARI
+      // TAKİP DURUMLARI
       arScene.addEventListener("targetFound", () => {
         guide.style.display = 'none';
         screenshotBtn.style.display = "flex";
@@ -105,7 +106,7 @@
         screenshotBtn.style.display = "none";
       });
 
-      // SENİN ORİJİNAL FOTOĞRAF ÇEKME FONKSİYONUN
+      // SENİN ORİJİNAL FOTOĞRAF ÇEKME FONKSİYONUN (MindAR uyumlu)
       screenshotBtn.addEventListener('click', () => {
         const canvas = document.querySelector('canvas');
         const dataURL = canvas.toDataURL("image/png");
