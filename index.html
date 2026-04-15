@@ -5,7 +5,10 @@
     <title>Kübra Yıldız - AR Experience</title>
     
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
     
     <link rel="stylesheet" href="styles.css">
     
@@ -22,13 +25,13 @@
         right: 0;
         top: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.2); /* Hafif karartma efekti */
+        background: rgba(0, 0, 0, 0.2);
         z-index: 2;
       }
 
       #scanning-overlay img {
-        width: 70%; /* Görselin büyüklüğü */
-        opacity: 0.6; /* Yarı saydamlık derecesi */
+        width: 70%;
+        opacity: 0.6;
         border: 2px solid rgba(255, 255, 255, 0.5);
         border-radius: 8px;
       }
@@ -63,7 +66,8 @@
           src="#avatarModel" 
           rotation="0 0 0" 
           position="0 0 0.01" 
-          scale="0.17 0.17 0.001">
+          scale="0.10 0.10 0.001"
+          animation-mixer="clip: *;">
         </a-gltf-model>
       </a-entity>
     </a-scene>
