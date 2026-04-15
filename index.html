@@ -12,23 +12,28 @@
 
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      /* SENİN ORİJİNAL FOTOĞRAF BUTONU STİLİN */
+      /* BEYAZ, SADE VE YUVARLAK DEKLANŞÖR (Fotoğraf Butonu) */
       #screenshot-btn {
         display: none;
-        position: absolute; bottom: 30px; right: 30px;
-        width: 70px; height: 70px; border-radius: 50%;
-        background-color: white; border: 5px solid #ffcc00;
-        cursor: pointer; z-index: 2000; font-size: 30px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-        align-items: center; justify-content: center;
+        position: absolute;
+        bottom: 30px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 75px;
+        height: 75px;
+        border-radius: 50%;
+        background-color: white;
+        border: 2px solid rgba(0,0,0,0.1); /* ÇOK HAFİF BELİRGİNLİK */
+        cursor: pointer;
+        z-index: 2000;
+        box-shadow: 0 0 15px rgba(0,0,0,0.2);
       }
+      #screenshot-btn:active { transform: translateX(-50%) scale(0.9); }
 
-      /* YARI SAYDAM REHBER (IMG_0127) */
       #guide-overlay {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
         width: 75%; opacity: 0.4; pointer-events: none; z-index: 1500; display: none;
       }
-
       #ar-scene { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; }
     </style>
   </head>
@@ -41,19 +46,18 @@
       scale="0.1 0.1 0.1" 
       orientation="0deg 90deg 0deg" 
       camera-controls 
-      tone-mapping="neutral" 
-      poster="poster.webp" 
-      shadow-intensity="1" 
       autoplay 
       animation-name="Animation" 
       loop>
 
-      <button type="button" id="start-trace-btn" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 15px 30px; background: #ffcc00; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; z-index: 100;">
-        Resim Üzerinde Görüntüle
+      <button type="button" id="start-trace-btn" style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; gap: 10px; padding: 12px 25px; background: white; border: 1px solid #999; border-radius: 25px; font-weight: bold; font-family: sans-serif; cursor: pointer; z-index: 100;">
+        <svg fill="#444" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 481.637 481.637" xml:space="preserve" width="20px" height="20px"><g><g><path d="M480.932,143.668L262.247,5.558c-3.179-1.996-7.05-3.085-11.028-3.085s-7.849,1.089-11.028,3.085L21.018,143.668c-4.482,2.812-7.258,7.661-7.258,12.868v182.269c0,5.207,2.776,10.057,7.258,12.868l219.012,138.11c3.179,1.996,7.05,3.085,11.028,3.085s7.849-1.089,11.028-3.085l219.012-138.11c4.482-2.812,7.258-7.661,7.258-12.868v-182.269C488.19,151.329,485.414,146.479,480.932,143.668z M261.219,37.388L448.97,155.88l-68.91,43.308l-187.751-118.49L261.219,37.388z M230.13,37.388l68.91,43.308L111.289,199.188L42.379,155.88L230.13,37.388z M42.379,343.37v-160.03l68.91,43.308v160.03L42.379,343.37z M230.13,444.249L42.379,325.757l68.91-43.308l187.751,118.49L230.13,444.249z M261.219,444.249l-68.91-43.308l187.751-118.49l68.91,43.308L261.219,444.249z M448.97,343.37l-68.91-43.308v-160.03l68.91-43.308v160.03z"/></g></g></svg>
+        <span>Resim Üzerinde Görüntüle</span>
       </button>
     </model-viewer>
 
-    <img id="guide-overlay" src="IMG_0127.png"> <button type="button" id="screenshot-btn">📸</button>
+    <img id="guide-overlay" src="IMG_0127.png">
+    <button type="button" id="screenshot-btn"></button>
 
     <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no" 
              embedded renderer="preserveDrawingBuffer: true" vr-mode-ui="enabled: false">
@@ -76,7 +80,6 @@
       const guide = document.querySelector("#guide-overlay");
       const screenshotBtn = document.querySelector("#screenshot-btn");
 
-      // Modu Değiştir ve İzinleri İste
       startTraceBtn.addEventListener('click', () => {
         modelViewer.style.display = 'none';
         arScene.style.display = 'block';
@@ -84,18 +87,16 @@
         arScene.systems["mindar-image-system"].start();
       });
 
-      // Hedef Algılama Mantığı
       arScene.addEventListener("targetFound", () => {
-        guide.style.display = 'none'; // Hedef bulununca rehberi kaldır
-        screenshotBtn.style.display = "flex";
+        guide.style.display = 'none';
+        screenshotBtn.style.display = "block";
       });
 
       arScene.addEventListener("targetLost", () => {
-        guide.style.display = 'block'; // Hedef kaybolunca rehberi geri getir
+        guide.style.display = 'block';
         screenshotBtn.style.display = "none";
       });
 
-      // Fotoğraf Çekme
       screenshotBtn.addEventListener('click', () => {
         const canvas = document.querySelector('canvas');
         const link = document.createElement('a');
@@ -104,7 +105,6 @@
         link.click();
       });
 
-      // Orijinal Animasyon Başlatıcı
       modelViewer.addEventListener("load", () => {
         modelViewer.animationName = "Animation";
         modelViewer.play();
