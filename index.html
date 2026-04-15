@@ -5,150 +5,128 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
     
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image.prod.js"></script>
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image-aframe.prod.js"></script>
 
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      body { margin: 0; overflow: hidden; background: #111; }
+      body { margin: 0; overflow: hidden; }
       
-      /* MindAR kamerasının arkada kalması, butonların önde olması için */
-      .mindar-ui-scanning, .mindar-ui-loading { z-index: 500 !important; }
-      
-      #container {
-        width: 100vw;
-        height: 100vh;
-        position: relative;
+      /* BUTONLARI ÖNE ÇIKARAN KATMAN */
+      .ui-layer {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none; /* Altındaki kamerayı engellemez */
+        z-index: 999;
       }
 
-      /* BUTONLARIN ÖNE ÇIKARILMASI (KRİTİK DÜZELTME) */
+      /* Orijinal Screenshot Butonu */
       #screenshot-btn {
         display: none; 
         position: absolute;
         bottom: 30px;
         right: 30px;
-        width: 75px;
-        height: 75px;
+        width: 70px;
+        height: 70px;
         border-radius: 50%;
-        background-color: white !important;
-        border: 5px solid #ffcc00 !important;
+        background-color: white;
+        border: 5px solid #ffcc00;
         cursor: pointer;
-        z-index: 9999 !important; /* Her şeyin üstünde */
+        pointer-events: auto; /* Tıklanabilir yap */
+        z-index: 1000;
         font-size: 30px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
         align-items: center;
         justify-content: center;
       }
 
+      /* Taramayı başlatan ana buton */
       #ar-button {
         position: absolute;
         bottom: 30px;
         left: 50%;
         transform: translateX(-50%);
         padding: 15px 30px;
-        background: #ffcc00 !important;
-        color: black !important;
+        background: #ffcc00;
         border: none;
         border-radius: 30px;
         font-weight: bold;
-        font-size: 16px;
-        z-index: 9999 !important;
+        pointer-events: auto;
         cursor: pointer;
-      }
-
-      #ar-prompt {
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        z-index: 9998;
-        display: none;
+        z-index: 1000;
       }
     </style>
   </head>
   <body>
 
-    <div id="container" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: #ar-prompt;">
+    <a-scene 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: #ar-prompt;" 
+      embedded color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
       
-      <model-viewer 
-        id="model-viewer"
-        src="elifiki.glb" 
-        ios-src="elifiki.usdz"
-        style="width: 100%; height: 100%;"
-        camera-controls 
-        autoplay 
-        animation-name="Animation" 
-        loop
-        shadow-intensity="1"
-        loading="eager" 
-        crossorigin="anonymous">
+      <a-assets>
+        <a-asset-item id="avatarModel" src="elifiki.glb"></a-asset-item>
+      </a-assets>
 
-        <button id="ar-button">AR DENEYİMİNE BAŞLA</button>
-        <button type="button" id="screenshot-btn">📸</button>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <div id="ar-prompt">
-            <img src="ar_hand_prompt.png" style="width: 100px;">
-            <p style="color: white; font-family: sans-serif; text-align: center;">Resmi Tarayın</p>
-        </div>
+      <a-entity mindar-image-target="targetIndex: 0" id="target">
+        <a-gltf-model 
+          id="model"
+          src="#avatarModel" 
+          rotation="0 0 0" 
+          position="0 0 0" 
+          scale="0.1 0.1 0.1"
+          animation-mixer="clip: Animation; loop: repeat">
+        </a-gltf-model>
+      </a-entity>
+    </a-scene>
 
-      </model-viewer>  
+    <div class="ui-layer">
+      <button id="ar-button">AR DENEYİMİNE BAŞLA</button>
+      <button type="button" id="screenshot-btn">📸</button>
+
+      <div id="ar-prompt" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%);">
+          <img src="ar_hand_prompt.png" style="width: 100px;">
+          <p style="color: white; text-align: center; font-family: sans-serif;">Resmi Tara</p>
+      </div>
     </div>
 
     <script>
-      const modelViewer = document.querySelector("#model-viewer");
-      const screenshotBtn = document.querySelector("#screenshot-btn");
-      const arButton = document.querySelector("#ar-button");
-      const container = document.querySelector("#container");
+      const sceneEl = document.querySelector('a-scene');
+      const arButton = document.querySelector('#ar-button');
+      const screenshotBtn = document.querySelector('#screenshot-btn');
+      const targetEntity = document.querySelector('#target');
 
-      // AR BUTONUNA BASILDIĞINDA TARAMAYI BAŞLAT
-      arButton.addEventListener("click", () => {
-        arButton.style.display = "none";
-        document.querySelector("#ar-prompt").style.display = "block";
-        
-        // MindAR'ı başlatıyoruz
-        const mindarThree = container.getAttribute("mindar-image");
-        // MindAR başlatma tetikleyici
-        container.dispatchEvent(new CustomEvent("startMindAR")); 
-        
-        // Model-viewer'ı AR moduna sokuyoruz
-        modelViewer.activateAR();
+      // 1. AR'I BAŞLAT
+      arButton.addEventListener('click', () => {
+        arButton.style.display = 'none';
+        sceneEl.systems['mindar-image-system'].start(); // MindAR kamerasını başlat
       });
 
-      // RESİM BULUNDUĞUNDA
-      container.addEventListener("targetFound", (event) => {
-        document.querySelector("#ar-prompt").style.display = "none";
+      // 2. RESİM BULUNDUĞUNDA BUTONU GÖSTER
+      targetEntity.addEventListener("targetFound", event => {
         screenshotBtn.style.display = "flex";
-        startAnim(); // Resim bulunca animasyonu başlat
       });
 
-      container.addEventListener("targetLost", () => {
+      targetEntity.addEventListener("targetLost", event => {
         screenshotBtn.style.display = "none";
       });
 
-      // FOTOĞRAF ÇEKME (ORİJİNAL)
-      screenshotBtn.addEventListener('click', async () => {
-        const blob = await modelViewer.toBlob({ idealAspect: true });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `AR_Hatira_${new Date().getTime()}.png`;
-        a.click();
-        URL.revokeObjectURL(url);
+      // 3. EKRAN GÖRÜNTÜSÜ ALMA (A-Frame ile Uyumlu)
+      screenshotBtn.addEventListener('click', () => {
+        const canvas = sceneEl.components.screenshot.getCanvas('perspective');
+        const dataURL = canvas.toDataURL("image/png");
+        const link = document.createElement('a');
+        link.download = `AR_Hatira_${new Date().getTime()}.png`;
+        link.href = dataURL;
+        link.click();
       });
-
-      // ANİMASYON MANTIĞI (ORİJİNAL)
-      const startAnim = () => {
-        modelViewer.animationName = "Animation";
-        modelViewer.play();
-        setTimeout(() => {
-          if (modelViewer.paused) {
-            modelViewer.animationName = "Scene";
-            modelViewer.play();
-          }
-        }, 100);
-      };
-
-      modelViewer.addEventListener("load", startAnim);
     </script>
   </body>
 </html>
