@@ -2,29 +2,24 @@
 <html>
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Basic MindAR</title>
-    
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
       body { margin: 0; overflow: hidden; }
       
-      /* Referans Resim: Yarı saydam ve ekranın ortasında */
+      /* Sadece referans resmin: Ekranın ortasında, yarı saydam */
       #scanning-overlay {
         position: fixed;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         width: 70vw;
-        opacity: 0.5; /* Yarı saydamlık */
-        z-index: 10;
+        opacity: 0.5;
+        z-index: 999;
         pointer-events: none;
+        display: block;
       }
-      
-      /* MindAR'ın kendi yükleme yazılarını gizle */
-      .mindar-ui-scanning, .mindar-ui-loading { display: none !important; }
     </style>
   </head>
   <body>
@@ -33,7 +28,7 @@
       <img src="IMG_0127.png" style="width: 100%;">
     </div>
 
-    <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no;" embedded color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: true">
+    <a-scene mindar-image="imageTargetSrc: ./targets.mind;" color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
       <a-assets>
         <a-asset-item id="model" src="elifiki.glb"></a-asset-item>
@@ -41,23 +36,21 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0" id="example-target">
-        <a-gltf-model src="#model" position="0 0 0" scale="0.1 0.1 0.1" animation-mixer></a-gltf-model>
+      <a-entity mindar-image-target="targetIndex: 0" id="target">
+        <a-gltf-model src="#model" position="0 0 0" scale="0.1 0.1 0.1"></a-gltf-model>
       </a-entity>
       
     </a-scene>
 
     <script>
       const overlay = document.querySelector('#scanning-overlay');
-      const targetEl = document.querySelector('#example-target');
+      const targetEl = document.querySelector('#target');
 
-      // Hedef resim bulunduğunda referansı gizle
-      targetEl.addEventListener("targetFound", event => {
+      // Bulunca gizle, kaybedince göster
+      targetEl.addEventListener("targetFound", () => {
         overlay.style.display = "none";
       });
-
-      // Hedef resim kaybedildiğinde referansı tekrar göster
-      targetEl.addEventListener("targetLost", event => {
+      targetEl.addEventListener("targetLost", () => {
         overlay.style.display = "block";
       });
     </script>
