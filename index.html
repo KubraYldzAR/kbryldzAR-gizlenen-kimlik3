@@ -1,52 +1,86 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <title>Kübra Yıldız - AR Experience</title>
+    
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; }
+      html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; position: fixed; background-color: black; }
+      .a-canvas { width: 100% !important; height: 100% !important; top: 0 !important; left: 0 !important; position: absolute !important; }
+      
       #overlay {
-        position: absolute; top: 10px; left: 10px; z-index: 100;
-        color: white; background: rgba(0,0,0,0.5); padding: 10px;
-        font-family: sans-serif; pointer-events: none;
+        position: absolute; top: 20px; width: 100%; text-align: center;
+        z-index: 100; color: white; font-family: -apple-system, system-ui, sans-serif;
+        pointer-events: none;
+      }
+      #status-msg { background: rgba(0,0,0,0.6); padding: 10px 20px; border-radius: 20px; display: inline-block; }
+      
+      #snap-button {
+        display: none; position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+        width: 70px; height: 70px; border-radius: 50%; background: white;
+        border: 5px solid #ffcc00; cursor: pointer; pointer-events: auto; z-index: 101;
       }
     </style>
   </head>
   <body>
-    <div id="overlay">Sistem Başlatılıyor... Lütfen Kamera İzni Verin.</div>
+    <div id="overlay"><div id="status-msg">Sistem Yükleniyor...</div></div>
+    <button id="snap-button"></button>
 
     <a-scene mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no" 
              embedded color-space="sRGB" 
-             renderer="colorManagement: true, physicallyCorrectLights" 
+             renderer="colorManagement: true, preserveDrawingBuffer: true, physicallyCorrectLights" 
              vr-mode-ui="enabled: false" 
-             device-orientation-permission-ui="enabled: false">
+             device-orientation-permission-ui="enabled: true">
       
       <a-assets>
-        <a-asset-item id="arModel" src="./elifiki.glb"></a-asset-item>
-      </a-assets>
+        <a-asset-item id="glbModel" src="./elifiki.glb"></a-asset-item>
+        </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity mindar-image-target="targetIndex: 0">
-        <a-gltf-model src="#arModel" 
-                      rotation="90 0 0" 
-                      position="0 0 0" 
-                      scale="1 1 1" 
+        <a-gltf-model id="ar-entity" src="#glbModel" 
+                      rotation="90 0 0" position="0 0 0" scale="1 1 1" 
                       animation-mixer>
         </a-gltf-model>
       </a-entity>
     </a-scene>
 
     <script>
-      const overlay = document.querySelector('#overlay');
-      document.querySelector('a-scene').addEventListener("arReady", (event) => {
-        overlay.innerHTML = "Kamerayı Resme Tutun!";
+      const sceneEl = document.querySelector('a-scene');
+      const statusMsg = document.querySelector('#status-msg');
+      const snapBtn = document.querySelector('#snap-button');
+
+      // Sistem Hazır
+      sceneEl.addEventListener("arReady", () => {
+        statusMsg.innerText = "Kamerayı Resme Odaklayın";
       });
-      document.querySelector('a-scene').addEventListener("arError", (event) => {
-        overlay.innerHTML = "Hata: Kamera başlatılamadı.";
+
+      // Resim Bulundu
+      sceneEl.addEventListener("targetFound", () => {
+        statusMsg.style.display = "none";
+        snapBtn.style.display = "block";
+      });
+
+      // Resim Kayboldu
+      sceneEl.addEventListener("targetLost", () => {
+        statusMsg.style.display = "inline-block";
+        statusMsg.innerText = "Resmi Tekrar Gösterin";
+        snapBtn.style.display = "none";
+      });
+
+      // Fotoğraf Çekme Fonksiyonu
+      snapBtn.addEventListener('click', () => {
+        const canvas = document.querySelector('canvas');
+        const link = document.createElement('a');
+        link.download = 'AR-Hatira.png';
+        link.href = canvas.toDataURL("image/png");
+        link.click();
       });
     </script>
   </body>
