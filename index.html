@@ -1,31 +1,132 @@
 <!doctype html>
-<html lang="en">
+<html lang="tr">
   <head>
-    <title>&lt;model-viewer&gt; template</title>
+    <title>Kübra Yıldız - AR Experience</title>
     <meta charset="utf-8">
-    <meta name="description" content="&lt;model-viewer&gt; template">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="<model-viewer> AR Display">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
+
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
+    <style>
+      /* Senin Orijinal Fotoğraf Butonu Stilin */
+      #screenshot-btn {
+        display: none;
+        position: absolute; bottom: 30px; right: 30px;
+        width: 70px; height: 70px; border-radius: 50%;
+        background-color: white; border: 5px solid #ffcc00;
+        cursor: pointer; z-index: 2000; font-size: 30px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        align-items: center; justify-content: center;
+      }
+      
+      /* Yarı Saydam Referans Resmi */
+      #guide-overlay {
+        position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+        width: 70%; opacity: 0.4; pointer-events: none; z-index: 1500; display: none;
+      }
+
+      /* AR Sahne Gizleme */
+      #ar-scene { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; }
+    </style>
   </head>
   <body>
-    <!-- <model-viewer> HTML element -->
-    <model-viewer src="elifiki.glb" ar ar-modes="webxr scene-viewer quick-look" camera-controls tone-mapping="neutral" poster="poster.webp" shadow-intensity="1" autoplay>
-      <div class="progress-bar hide" slot="progress-bar">
-          <div class="update-bar"></div>
-      </div>
+
+    <model-viewer 
+      id="main-viewer"
+      src="elifiki.glb" 
+      ios-src="elifiki.usdz"
+      scale="0.1 0.1 0.1" 
+      orientation="0deg 90deg 0deg" 
+      camera-controls 
+      tone-mapping="neutral" 
+      poster="poster.webp" 
+      shadow-intensity="1" 
+      autoplay 
+      animation-name="Animation" 
+      loop>
+
       <button slot="ar-button" id="ar-button">
-          <font dir="auto" style="vertical-align: inherit;">
-              <font dir="auto" style="vertical-align: inherit;">
-                  Kendi alanınızda görüntüleyin
-              </font>
-          </font>
+          AR Denemek İçin Tıkla
       </button>
-      <div id="ar-prompt">
-          <img src="ar_hand_prompt.png">
-      </div>
-    </model-viewer>  
-    <script src="script.js"></script>
-    <!-- Loads <model-viewer> for browsers: -->
-    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/{{MODELVIEWER_VERSION}}/model-viewer.min.js"></script>
+
+      <button type="button" id="start-trace-btn" style="position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); padding: 15px 30px; background: #ffcc00; border: none; border-radius: 25px; font-weight: bold; cursor: pointer; z-index: 100;">
+        Resim Üzerinde Görüntüle
+      </button>
+    </model-viewer>
+
+    <img id="guide-overlay" src="image.png" alt="Guide">
+    <button type="button" id="screenshot-btn">📸</button>
+
+    <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no" 
+             embedded renderer="preserveDrawingBuffer: true, colorManagement: true" vr-mode-ui="enabled: false">
+      
+      <a-assets>
+        <a-asset-item id="traceModel" src="elifiki.glb"></a-asset-item>
+      </a-assets>
+
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+      <a-entity mindar-image-target="targetIndex: 0">
+        <a-gltf-model src="#traceModel" 
+                      rotation="90 0 0" position="0 0 0" scale="1 1 1" 
+                      animation-mixer="loop: repeat">
+        </a-gltf-model>
+      </a-entity>
+    </a-scene>
+
+    <script>
+      const modelViewer = document.querySelector("#main-viewer");
+      const startTraceBtn = document.querySelector("#start-trace-btn");
+      const arScene = document.querySelector("#ar-scene");
+      const guide = document.querySelector("#guide-overlay");
+      const screenshotBtn = document.querySelector("#screenshot-btn");
+
+      // IMAGE TRACE MODUNU BAŞLATMA
+      startTraceBtn.addEventListener('click', () => {
+        modelViewer.style.display = 'none'; // Beyaz ekranı kapat
+        arScene.style.display = 'block';    // Kamerayı aç
+        guide.style.display = 'block';      // Rehber resmi göster
+        arScene.systems["mindar-image-system"].start();
+      });
+
+      // RESİM ALGILAMA DURUMLARI
+      arScene.addEventListener("targetFound", () => {
+        guide.style.display = 'none';
+        screenshotBtn.style.display = "flex";
+      });
+
+      arScene.addEventListener("targetLost", () => {
+        guide.style.display = 'block';
+        screenshotBtn.style.display = "none";
+      });
+
+      // SENİN ORİJİNAL FOTOĞRAF ÇEKME FONKSİYONUN
+      screenshotBtn.addEventListener('click', () => {
+        const canvas = document.querySelector('canvas');
+        const dataURL = canvas.toDataURL("image/png");
+        const a = document.createElement('a');
+        a.href = dataURL;
+        a.download = `AR_Sanat_Hatirasi_${new Date().getTime()}.png`;
+        a.click();
+      });
+
+      // Senin Orijinal Animasyon Mantığın
+      const startAnim = () => {
+        modelViewer.animationName = "Animation";
+        modelViewer.play();
+        setTimeout(() => {
+          if (modelViewer.paused) {
+            modelViewer.animationName = "Scene";
+            modelViewer.play();
+          }
+        }, 50);
+      };
+      modelViewer.addEventListener("load", startAnim);
+    </script>
   </body>
 </html>
