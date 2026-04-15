@@ -12,7 +12,6 @@
     
     <style>
       body { margin: 0; overflow: hidden; }
-
       #scanning-overlay {
         display: flex;
         align-items: center;
@@ -22,17 +21,13 @@
         background: rgba(0, 0, 0, 0.2);
         z-index: 2;
       }
-
       #scanning-overlay img {
         width: 70%;
         opacity: 0.6;
         border: 2px solid rgba(255, 255, 255, 0.5);
         border-radius: 8px;
       }
-
-      #scanning-overlay.hidden {
-        display: none !important;
-      }
+      #scanning-overlay.hidden { display: none !important; }
     </style>
   </head>
   <body>
@@ -42,7 +37,7 @@
     </div>
 
     <a-scene 
-      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay;" 
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000; missTolerance: 600" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -58,7 +53,7 @@
         <a-gltf-model 
           src="#avatarModel" 
           rotation="0 0 0" 
-          position="0 0 0.1" 
+          position="0 0 0.05" 
           scale="0.1 0.1 0.1"
           animation-mixer>
         </a-gltf-model>
