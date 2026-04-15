@@ -71,19 +71,13 @@
     <script src="script.js"></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     
+    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image.prod.js"></script>
+    
     <script>
       const modelViewer = document.querySelector("model-viewer");
       const screenshotBtn = document.querySelector("#screenshot-btn");
 
-      // IMAGE TRACKING (RESİM TANIMA) ÖZELLİĞİ
-      // targets.mind dosyasını sisteme tanıtıyoruz
-      modelViewer.addEventListener('ar-status', (event) => {
-        if (event.detail.status === 'session-started') {
-          const driver = modelViewer.arSession.requestHitTestSource({space: modelViewer.arSession.viewerSpace});
-        }
-      });
-
-      // 1. FOTOĞRAF ÇEKME FONKSİYONU (KORUNDU)
+      // FOTOĞRAF ÇEKME FONKSİYONU (KORUNDU)
       screenshotBtn.addEventListener('click', async () => {
         const blob = await modelViewer.toBlob({ idealAspect: true });
         const url = URL.createObjectURL(blob);
@@ -94,10 +88,16 @@
         URL.revokeObjectURL(url);
       });
 
-      // 2. AR DURUMUNA GÖRE BUTONU GÖSTER/GİZLE (KORUNDU)
-      modelViewer.addEventListener("ar-status", (event) => {
+      // AR DURUMUNA GÖRE BUTONU GÖSTER/GİZLE VE RESİM TAKİBİNİ BAŞLAT (KORUNDU VE ENTEGRE EDİLDİ)
+      modelViewer.addEventListener("ar-status", async (event) => {
         if (event.detail.status === "session-started") {
           screenshotBtn.style.display = "flex";
+          
+          // RESİM TAKİBİNİ BAŞLATAN KOD
+          await modelViewer.activateARMode();
+          await modelViewer.activateARImageTracking("targets.mind"); 
+          // "targets.mind" dosyanızın aynı klasörde olması gerektiğini unutmayın
+
         } else if (event.detail.status === "not-presenting") {
           screenshotBtn.style.display = "none";
         }
