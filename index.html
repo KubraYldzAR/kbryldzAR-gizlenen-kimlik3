@@ -11,83 +11,54 @@
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
 
     <style>
-      body { margin: 0; overflow: hidden; font-family: sans-serif; }
+      body { margin: 0; overflow: hidden; font-family: sans-serif; background-color: white; }
 
-      /* GİRİŞ BUTONU (Mavi İkonlu Görselindeki Tasarım) */
+      /* AR GİRİŞ BUTONU */
       #ar-button {
-        background-color: white;
-        border-radius: 25px;
-        border: 1px solid #999;
-        padding: 10px 20px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        color: #4285f4;
-        font-weight: bold;
-        position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        cursor: pointer;
-        z-index: 100;
-        white-space: nowrap;
+        background-color: white; border-radius: 25px; border: 1px solid #999;
+        padding: 10px 20px; display: flex; align-items: center; gap: 10px;
+        color: #4285f4; font-weight: bold; position: absolute;
+        bottom: 30px; left: 50%; transform: translateX(-50%);
+        cursor: pointer; z-index: 100;
       }
 
-      /* BEYAZ SADE DEKLANŞÖR (Ekran Görüntüsü Butonu) */
+      /* GERÇEK DEKLANŞÖR (BEYAZ HALKA) */
       #screenshot-btn {
-        display: none;
-        position: absolute;
-        bottom: 30px;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 75px;
-        height: 75px;
-        border-radius: 50%;
-        background-color: white;
-        border: 2px solid rgba(0,0,0,0.1);
-        cursor: pointer;
-        z-index: 2000;
-        box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        display: none; position: absolute; bottom: 40px; left: 50%;
+        transform: translateX(-50%); width: 80px; height: 80px;
+        border-radius: 50%; background: white; border: 5px solid rgba(0,0,0,0.2);
+        box-shadow: 0 0 20px rgba(0,0,0,0.3); z-index: 2000; cursor: pointer;
       }
-      #screenshot-btn:active { transform: translateX(-50%) scale(0.9); }
+      #screenshot-btn:active { background: #ddd; transform: translateX(-50%) scale(0.9); }
 
-      /* REHBER KATMANI (IMG_0127) */
+      /* REHBER KATMANI */
       #guide-overlay {
         position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
-        width: 75%; opacity: 0.4; pointer-events: none; z-index: 1500; display: none;
+        width: 70%; opacity: 0.5; pointer-events: none; z-index: 1500; display: none;
       }
 
       #ar-scene { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1000; }
+      model-viewer { width: 100%; height: 100vh; }
     </style>
   </head>
   <body>
 
-    <model-viewer 
-      id="main-viewer"
-      src="elifiki.glb" 
-      ios-src="elifiki.usdz"
-      poster="poster.webp"
-      scale="0.1 0.1 0.1" 
-      orientation="0deg 90deg 0deg" 
-      camera-controls 
-      autoplay 
-      animation-name="Animation" 
-      loop>
-
+    <model-viewer id="main-viewer" src="./elifiki.glb" ios-src="./elifiki.usdz" poster="./poster.webp"
+                  scale="0.1 0.1 0.1" orientation="0deg 90deg 0deg" camera-controls autoplay animation-name="Animation" loop>
       <button slot="ar-button" id="ar-button">
-          <img src="ar_icon.png" width="22" height="22" alt="AR Icon">
+          <img src="./ar_icon.png" width="22" height="22">
           AR Denemek İçin Tıkla
       </button>
     </model-viewer>
 
-    <img id="guide-overlay" src="IMG_0127.png">
+    <img id="guide-overlay" src="./IMG_0127.png">
     <button type="button" id="screenshot-btn"></button>
 
     <a-scene id="ar-scene" mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no" 
-             embedded renderer="preserveDrawingBuffer: true" vr-mode-ui="enabled: false">
+             embedded renderer="preserveDrawingBuffer: true; antialias: true; alpha: true" vr-mode-ui="enabled: false">
       
       <a-assets>
-        <a-asset-item id="traceModel" src="elifiki.glb"></a-asset-item>
+        <a-asset-item id="traceModel" src="./elifiki.glb"></a-asset-item>
       </a-assets>
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
@@ -104,7 +75,6 @@
       const guide = document.querySelector("#guide-overlay");
       const screenshotBtn = document.querySelector("#screenshot-btn");
 
-      // AR Takibi Başlat
       arButton.addEventListener('click', () => {
         modelViewer.style.display = 'none';
         arScene.style.display = 'block';
@@ -112,7 +82,6 @@
         arScene.systems["mindar-image-system"].start();
       });
 
-      // Resim Algılandığında / Kaybolduğunda
       arScene.addEventListener("targetFound", () => {
         guide.style.display = 'none';
         screenshotBtn.style.display = "block";
@@ -123,18 +92,33 @@
         screenshotBtn.style.display = "none";
       });
 
-      // EKRAN GÖRÜNTÜSÜ ALMA (Yeni sekmede açar, galerine kaydedebilirsin)
-      screenshotBtn.addEventListener('click', () => {
+      // EKRAN GÖRÜNTÜSÜ ALMA FONKSİYONU
+      screenshotBtn.addEventListener('click', async () => {
         const canvas = document.querySelector('canvas');
-        const dataURL = canvas.toDataURL("image/png");
-        const newTab = window.open();
-        newTab.document.write('<body style="margin:0; background:black; display:flex; align-items:center; justify-content:center;"><img src="' + dataURL + '" style="max-width:100%; height:auto;"></body>');
-        newTab.document.title = "AR Hatırası";
-      });
-
-      modelViewer.addEventListener("load", () => {
-        modelViewer.animationName = "Animation";
-        modelViewer.play();
+        
+        // Canvas'ı resme çevir
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], "ar_screenshot.png", { type: "image/png" });
+          
+          // Mobil Paylaşma Menüsünü Tetikle (iOS/Android için en güvenli yol)
+          if (navigator.share) {
+            try {
+              await navigator.share({
+                files: [file],
+                title: 'AR Deneyimi',
+                text: 'Kübra Yıldız AR Deneyiminden bir kare!'
+              });
+            } catch (err) {
+              // Paylaşma iptal edilirse veya hata verirse yeni sekmede aç
+              const url = URL.createObjectURL(blob);
+              window.open(url, '_blank');
+            }
+          } else {
+            // Masaüstü için fallback
+            const url = URL.createObjectURL(blob);
+            window.open(url, '_blank');
+          }
+        });
       });
     </script>
   </body>
