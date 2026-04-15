@@ -7,69 +7,53 @@
     
     <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
 
     <style>
       body { margin: 0; overflow: hidden; background: #000; }
       
-      #ui-container {
+      #ui-layer {
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        z-index: 9999;
+        z-index: 1000;
         pointer-events: none;
       }
 
-      /* BAŞLAT BUTONU */
-      #ar-start-button {
-        position: absolute;
-        bottom: 50px; left: 50%;
-        transform: translateX(-50%);
-        padding: 20px 40px;
-        background-color: #ffcc00;
-        border: none;
-        border-radius: 40px;
-        color: black;
-        font-weight: bold;
-        font-size: 18px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-        cursor: pointer;
-        pointer-events: auto; /* Tıklamayı aktif eder */
-        display: block;
-      }
-
-      /* REFERANS RESİM (IMG_0127) */
+      /* Referans Resim (IMG_0127) */
       #scanning-prompt {
-        display: none;
         position: absolute;
         top: 50%; left: 50%;
         transform: translate(-50%, -50%);
-        width: 70%;
+        width: 75%;
         opacity: 0.5;
-        pointer-events: none;
+        display: block; /* Başlangıçta görünür */
       }
 
-      /* EKRAN GÖRÜNTÜSÜ BUTONU */
+      /* Orijinal Screenshot Butonu Stili */
       #screenshot-btn {
         display: none; 
         position: absolute;
-        bottom: 30px; right: 30px;
-        width: 80px; height: 80px;
+        bottom: 40px; right: 30px;
+        width: 75px; height: 75px;
         border-radius: 50%;
         background-color: white;
-        border: 6px solid #ffcc00;
+        border: 5px solid #ffcc00;
         cursor: pointer;
         pointer-events: auto;
-        font-size: 35px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        font-size: 32px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.4);
         align-items: center; justify-content: center;
+        outline: none;
       }
+      #screenshot-btn:active { transform: scale(0.9); }
     </style>
   </head>
   <body>
 
     <a-scene 
       id="ar-scene"
-      mindar-image="imageTargetSrc: ./targets.mind; autoStart: false; uiScanning: no;" 
+      mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no;" 
       embedded color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -83,76 +67,52 @@
 
       <a-entity mindar-image-target="targetIndex: 0" id="target">
         <a-gltf-model 
-          id="model"
-          src="#avatarModel" 
-          rotation="0 0 0" 
-          position="0 0 0" 
-          scale="0.1 0.1 0.1">
+          id="model" src="#avatarModel" 
+          rotation="0 0 0" position="0 0 0" scale="0.1 0.1 0.1"
+          animation-mixer="clip: Animation; loop: repeat">
         </a-gltf-model>
       </a-entity>
     </a-scene>
 
-    <div id="ui-container">
-      <button id="ar-start-button">AR DENEYİMİNE BAŞLA</button>
-      
+    <div id="ui-layer">
       <div id="scanning-prompt">
-          <img src="IMG_0127.png" style="width: 100%;">
+        <img src="IMG_0127.png" style="width: 100%; height: auto;">
       </div>
 
       <button type="button" id="screenshot-btn">📸</button>
     </div>
 
     <script>
-      const sceneEl = document.querySelector('#ar-scene');
-      const startButton = document.querySelector('#ar-start-button');
       const screenshotBtn = document.querySelector('#screenshot-btn');
       const scanningPrompt = document.querySelector('#scanning-prompt');
       const targetEntity = document.querySelector('#target');
       const modelEl = document.querySelector("#model");
 
-      // KAMERAYI BAŞLATMA FONKSİYONU
-      startButton.addEventListener('click', () => {
-        console.log("Başlatma deneniyor...");
-        
-        // Kamera sistemini zorla başlat
-        const startAR = () => {
-            sceneEl.systems['mindar-image-system'].start();
-            startButton.style.display = 'none';
-            scanningPrompt.style.display = 'block';
-        };
-
-        // Eğer sahne yüklendiyse hemen başlat, yüklenmediyse yüklenmesini bekle
-        if (sceneEl.hasLoaded) {
-            startAR();
-        } else {
-            sceneEl.addEventListener('loaded', startAR);
-        }
-      });
-
-      // HEDEF BULUNDUĞUNDA
+      // Hedef Resim Algılandığında
       targetEntity.addEventListener("targetFound", () => {
-        scanningPrompt.style.display = 'none';
-        screenshotBtn.style.display = "flex";
+        scanningPrompt.style.display = 'none'; // Referansı gizle
+        screenshotBtn.style.display = "flex"; // Fotoğraf çekme butonunu göster
         
-        // Animasyonları başlat
-        modelEl.setAttribute('animation-mixer', 'clip: Animation; loop: repeat');
+        // Animasyon Sıralaması
+        modelEl.setAttribute('animation-mixer', 'clip: Animation');
         setTimeout(() => {
-          modelEl.setAttribute('animation-mixer', 'clip: Scene; loop: repeat');
+          modelEl.setAttribute('animation-mixer', 'clip: Scene');
         }, 150);
       });
 
-      // HEDEF KAYBOLDUĞUNDA
+      // Hedef Resim Kaybolduğunda
       targetEntity.addEventListener("targetLost", () => {
-        scanningPrompt.style.display = 'block';
+        scanningPrompt.style.display = 'block'; // Referansı geri getir
         screenshotBtn.style.display = "none";
       });
 
-      // EKRAN GÖRÜNTÜSÜ
+      // Screenshot Alma
       screenshotBtn.addEventListener('click', () => {
+        const sceneEl = document.querySelector('a-scene');
         const canvas = sceneEl.components.screenshot.getCanvas('perspective');
         const dataURL = canvas.toDataURL("image/png");
         const link = document.createElement('a');
-        link.download = `AR_Hatira.png`;
+        link.download = `AR_Hatira_${new Date().getTime()}.png`;
         link.href = dataURL;
         link.click();
       });
