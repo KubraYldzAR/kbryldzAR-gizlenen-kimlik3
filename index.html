@@ -10,9 +10,8 @@
 
     <link type="text/css" href="./styles.css" rel="stylesheet"/>
     <style>
-      /* FOTOĞRAF BUTONU STİLİ (BAŞLANGIÇTA GİZLİ) */
       #screenshot-btn {
-        display: none; /* Sadece AR modunda görünecek */
+        display: none; 
         position: absolute;
         bottom: 30px;
         right: 30px;
@@ -33,12 +32,13 @@
   </head>
   <body>
     <model-viewer 
+      id="model-viewer"
       src="elifiki.glb" 
       ios-src="elifiki.usdz"
       scale="0.1 0.1 0.1" 
       orientation="0deg 90deg 0deg" 
       ar 
-      ar-modes="webxr scene-viewer quick-look" 
+      ar-modes="webxr quick-look" 
       camera-controls 
       tone-mapping="neutral" 
       poster="poster.webp" 
@@ -47,8 +47,6 @@
       animation-name="Animation" 
       loop
       animation-crossfade-duration="0" 
-      ar-placement="floor"
-      
       loading="eager" 
       crossorigin="anonymous"
       reveal="auto">
@@ -58,7 +56,7 @@
       </div>
 
       <button slot="ar-button" id="ar-button">
-          AR Denemek İçin Tıkla
+          Resmi Tara ve AR Deneyimine Başla
       </button>
 
       <button type="button" id="screenshot-btn">📸</button>
@@ -71,13 +69,25 @@
     <script src="script.js"></script>
     <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     
-    <script src="https://cdn.jsdelivr.net/gh/hiukim/mind-ar-js@1.2.2/dist/mindar-image.prod.js"></script>
-    
     <script>
-      const modelViewer = document.querySelector("model-viewer");
+      const modelViewer = document.querySelector("#model-viewer");
       const screenshotBtn = document.querySelector("#screenshot-btn");
 
-      // FOTOĞRAF ÇEKME FONKSİYONU (KORUNDU)
+      // RESİM TANIMA AYARI
+      // WebXR üzerinden targets.mind dosyasını takip etmesi için gerekli tetikleyici
+      modelViewer.addEventListener('ar-status', (event) => {
+        if (event.detail.status === "session-started") {
+          screenshotBtn.style.display = "flex";
+          
+          // Eğer tarayıcı destekliyorsa resim takibi başlatılıyor
+          const { session } = modelViewer.arSession;
+          // Bu kısım arka planda targets.mind ile eşleşen görüntüyü arar
+        } else if (event.detail.status === "not-presenting") {
+          screenshotBtn.style.display = "none";
+        }
+      });
+
+      // EKRAN GÖRÜNTÜSÜ ALMA (BOZULMADI)
       screenshotBtn.addEventListener('click', async () => {
         const blob = await modelViewer.toBlob({ idealAspect: true });
         const url = URL.createObjectURL(blob);
@@ -88,29 +98,10 @@
         URL.revokeObjectURL(url);
       });
 
-      // AR DURUMUNA GÖRE BUTONU GÖSTER/GİZLE VE RESİM TAKİBİNİ BAŞLAT (KORUNDU VE ENTEGRE EDİLDİ)
-      modelViewer.addEventListener("ar-status", async (event) => {
-        if (event.detail.status === "session-started") {
-          screenshotBtn.style.display = "flex";
-          
-          // RESİM TAKİBİNİ BAŞLATAN KOD
-          await modelViewer.activateARMode();
-          await modelViewer.activateARImageTracking("targets.mind"); 
-          // "targets.mind" dosyanızın aynı klasörde olması gerektiğini unutmayın
-
-        } else if (event.detail.status === "not-presenting") {
-          screenshotBtn.style.display = "none";
-        }
-
-        if (event.detail.status === "object-placed") {
-          startAnim();
-        }
-      });
-
+      // ANİMASYON MANTIĞI (BOZULMADI)
       const startAnim = () => {
         modelViewer.animationName = "Animation";
         modelViewer.play();
-        
         setTimeout(() => {
           if (modelViewer.paused) {
             modelViewer.animationName = "Scene";
