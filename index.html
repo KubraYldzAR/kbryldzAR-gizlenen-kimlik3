@@ -8,10 +8,35 @@
     <link rel="stylesheet" href="styles.css">
     <style>
       body { margin: 0; overflow: hidden; }
-      /* Yükleme ekranı veya UI elemanları buraya gelebilir */
+
+      /* Hedef görseli ekranın ortasına yarı saydam yerleştiren stil */
+      #scanning-overlay {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        left: 0;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        background: transparent;
+        z-index: 2;
+      }
+      #scanning-overlay img {
+        width: 60%; /* Görselin ekrandaki büyüklüğü */
+        opacity: 0.5; /* Yarı saydamlık */
+      }
+      /* Hedef bulunduğunda MindAR otomatik olarak 'hidden' class'ı ekler */
+      #scanning-overlay.hidden {
+        display: none;
+      }
     </style>
   </head>
   <body>
+
+    <div id="scanning-overlay">
+      <img src="./IMG_0127.png" alt="Hedefi Tara">
+    </div>
 
     <a-scene 
       mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay;" 
@@ -31,13 +56,10 @@
           src="#avatarModel" 
           rotation="0 0 0" 
           position="0 0 0" 
-          scale="0.1 0.1 0.1">
+          scale="0.05 0.05 0.05">
         </a-gltf-model>
       </a-entity>
     </a-scene>
-
-    <div id="scanning-overlay" style="display: none;">
-        </div>
 
     <script src="script.js"></script>
   </body>
