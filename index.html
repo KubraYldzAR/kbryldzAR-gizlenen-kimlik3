@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AR Deneyimi</title>
+    <title>Kübra Yıldız AR Deneyimi</title>
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
@@ -11,58 +11,41 @@
 
     <style>
         body, html {
-            margin: 0;
-            padding: 0;
-            width: 100%;
-            height: 100%;
-            overflow: hidden;
-            background-color: #000;
-            -webkit-tap-highlight-color: transparent;
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #000;
         }
 
-        /* Kamera yüklenirken görünecek şık bir yükleme ekranı */
         #loading-screen {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: #000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            color: white;
-            font-size: 18px;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #121212; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; z-index: 9999;
+            color: white; font-family: sans-serif;
         }
 
+        /* Modern şık arayüz */
         #ui-container {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10;
-            background: rgba(0, 0, 0, 0.4);
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; justify-content: center;
+            align-items: center; z-index: 10;
+            background: rgba(0, 0, 0, 0.5);
+            transition: opacity 0.4s ease;
             pointer-events: none;
-            transition: opacity 0.5s ease;
         }
 
-        .instruction-box {
-            background: rgba(255, 255, 255, 0.9);
-            padding: 12px 24px;
-            border-radius: 20px;
-            margin-bottom: 30px;
-            color: #1a1a1a;
-            font-size: 16px;
-            font-weight: 500;
-            text-align: center;
+        .instruction-text {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            color: white; padding: 15px 30px;
+            border-radius: 30px; margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 14px; letter-spacing: 1px;
         }
 
         #reference-image {
-            width: 65%;
-            max-width: 280px;
-            opacity: 0.5;
-            border: 2px dashed rgba(255, 255, 255, 0.7);
-            border-radius: 12px;
+            width: 70%; max-width: 300px;
+            opacity: 0.4; border: 2px solid #fff;
+            border-radius: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.2);
         }
 
         .hidden { opacity: 0 !important; }
@@ -70,15 +53,18 @@
 </head>
 <body>
 
-    <div id="loading-screen">Kamera Başlatılıyor...</div>
+    <div id="loading-screen">
+        <p>AR Deneyimi Yükleniyor...</p>
+        <small style="margin-top: 10px; opacity: 0.6;">Lütfen kamera iznini onaylayın</small>
+    </div>
 
     <div id="ui-container" class="hidden">
-        <div class="instruction-box">Lütfen görseli tarayın</div>
+        <div class="instruction-text">GÖRSELİ TARAYIN</div>
         <img id="reference-image" src="IMG_0127.png">
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;" 
+        mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;" 
         embedded
         color-space="sRGB" 
         renderer="colorManagement: true, physicallyCorrectLights" 
@@ -89,7 +75,7 @@
             <a-asset-item id="modelAsset" src="elifiki.glb"></a-asset-item>
         </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
         <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
             <a-gltf-model src="#modelAsset" position="0 0 0" scale="1 1 1" animation-mixer></a-gltf-model>
@@ -97,38 +83,38 @@
     </a-scene>
 
     <script>
+        const sceneEl = document.querySelector('a-scene');
+        const uiContainer = document.querySelector('#ui-container');
+        const loadingScreen = document.querySelector('#loading-screen');
+        const targetEntity = document.querySelector('#target-entity');
+
+        // Sayfa yüklendiğinde AR'ı başlat
         window.addEventListener("load", () => {
-            const sceneEl = document.querySelector('a-scene');
+            // A-Frame hazır olduğunda MindAR'ı manuel tetikle
+            if (sceneEl.hasLoaded) {
+                startAR();
+            } else {
+                sceneEl.addEventListener("loaded", startAR);
+            }
+        });
+
+        function startAR() {
             const arSystem = sceneEl.systems["mindar-image-system"];
-            const loadingScreen = document.querySelector('#loading-screen');
-            const uiContainer = document.querySelector('#ui-container');
-            const targetEntity = document.querySelector('#target-entity');
-
-            // AR Sistemini Manuel Başlat (İzinleri Tetikler)
-            sceneEl.addEventListener("renderstart", () => {
-                arSystem.start(); 
-            });
-
-            // Kamera açıldığında yükleme ekranını kaldır
+            arSystem.start(); 
+            
             sceneEl.addEventListener("arReady", () => {
                 loadingScreen.classList.add('hidden');
                 uiContainer.classList.remove('hidden');
             });
 
-            // Hedef Bulunma ve Kaybolma Mantığı
-            targetEntity.addEventListener("targetFound", () => {
-                uiContainer.classList.add('hidden');
+            sceneEl.addEventListener("arError", () => {
+                alert("Kamera başlatılamadı. Lütfen HTTPS bağlantısını ve izinleri kontrol edin.");
             });
+        }
 
-            targetEntity.addEventListener("targetLost", () => {
-                uiContainer.classList.remove('hidden');
-            });
-
-            // Kamera Hatası Durumu
-            sceneEl.addEventListener("arError", (event) => {
-                loadingScreen.innerText = "Kamera izni reddedildi veya cihaz desteklenmiyor.";
-            });
-        });
+        // Görseli görünce UI gizle, kaybedince göster
+        targetEntity.addEventListener("targetFound", () => uiContainer.classList.add('hidden'));
+        targetEntity.addEventListener("targetLost", () => uiContainer.classList.remove('hidden'));
     </script>
 </body>
 </html>
