@@ -3,7 +3,6 @@
   <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kübra Yıldız - AR Experience</title>
-    
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
@@ -11,20 +10,11 @@
     <style>
       body { margin: 0; overflow: hidden; }
       #scanning-overlay {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: absolute;
-        left: 0; right: 0; top: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.2);
-        z-index: 2;
+        display: flex; align-items: center; justify-content: center;
+        position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.2); z-index: 2;
       }
-      #scanning-overlay img {
-        width: 70%;
-        opacity: 0.5;
-        border: 2px solid white;
-        border-radius: 10px;
-      }
+      #scanning-overlay img { width: 70%; opacity: 0.5; border: 2px solid white; border-radius: 10px; }
       #scanning-overlay.hidden { display: none !important; }
     </style>
   </head>
@@ -35,6 +25,7 @@
     </div>
 
     <a-scene 
+      id="ar-scene"
       mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.001; filterBeta: 10;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
@@ -47,16 +38,30 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity mindar-image-target="targetIndex: 0">
+      <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
         <a-gltf-model 
           src="#avatarModel" 
           rotation="0 0 0" 
-          position="0 0 -0.05" 
+          position="0 0 0" 
           scale="0.09 0.09 0.09"
           animation-mixer>
         </a-gltf-model>
       </a-entity>
     </a-scene>
+
+    <script>
+      const sceneEl = document.querySelector('a-scene');
+      const targetEl = document.querySelector('#target-entity');
+
+      targetEl.addEventListener("targetFound", event => {
+        // Hedef bulunduğunda 1 saniye sonra sistemi dondurur.
+        // Bu süre modelin yerine tam yerleşmesi ve titremenin durması içindir.
+        setTimeout(() => {
+          sceneEl.systems['mindar-image-system'].stop();
+          console.log("Model merkeze oturdu ve takip donduruldu.");
+        }, 1000); 
+      });
+    </script>
 
   </body>
 </html>
