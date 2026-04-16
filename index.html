@@ -13,7 +13,6 @@
     <style>
       body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; }
       
-      /* MindAR Tarama Arayüzü */
       #scanning-overlay {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: absolute; inset: 0; background: rgba(255, 255, 255, 0.1); 
@@ -30,30 +29,26 @@
       .image-frame { width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; }
       #scanning-overlay img { width: 100%; height: 100%; object-fit: cover; opacity: 0.45; border-radius: 16px; border: 3px solid white; }
 
-      /* Mod Değiştirme Butonu */
+      /* Sağ Alt Köşeye Sabitlenen Geçiş Butonu */
       #switch-btn {
-        position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
-        background: #FFFFFF; color: #7A7A7A; padding: 15px 35px;
+        position: absolute; bottom: 30px; right: 30px;
+        background: #FFFFFF; color: #7A7A7A; padding: 12px 25px;
         border-radius: 50px; border: 1px solid #F0F0F0;
-        font-size: 12px; font-weight: 600; letter-spacing: 1px;
+        font-size: 11px; font-weight: 600; letter-spacing: 1px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-        z-index: 100; display: none; cursor: pointer; text-transform: uppercase;
+        z-index: 100; cursor: pointer; text-transform: uppercase;
+        display: block; /* Başlangıçta görünür */
       }
 
-      /* Model Viewer Konfigürasyonu */
       model-viewer {
         display: none; position: absolute; inset: 0; width: 100%; height: 100%;
         background: #f8f9fa; z-index: 200;
       }
 
-      /* Senin Orijinal AR Butonun */
       #ar-button {
-        background-image: url(ar_icon.png);
-        background-repeat: no-repeat;
-        background-size: 20px 20px;
-        background-position: 12px 50%;
-        background-color: #fff;
-        position: absolute; left: 50%; transform: translateX(-50%);
+        background-image: url(ar_icon.png); background-repeat: no-repeat;
+        background-size: 20px 20px; background-position: 12px 50%;
+        background-color: #fff; position: absolute; left: 50%; transform: translateX(-50%);
         bottom: 132px; padding: 0px 16px 0px 40px;
         font-family: Roboto Regular, Helvetica Neue, sans-serif;
         font-size: 14px; color:#4285f4; height: 36px; line-height: 36px;
@@ -61,11 +56,10 @@
       }
 
       #screenshot-btn {
-        display: none; position: absolute; bottom: 40px; right: 30px;
+        position: absolute; bottom: 40px; right: 30px;
         width: 65px; height: 65px; border-radius: 50%;
         background: white; border: 4px solid #f0f0f0;
         cursor: pointer; z-index: 999; font-size: 24px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
         display: none; align-items: center; justify-content: center;
       }
 
@@ -75,12 +69,12 @@
   <body>
 
     <div id="scanning-overlay">
-      <div class="info-card">Görseli Odaklayın</div>
+      <div class="info-card">KAMERAYI GÖRSELE ODAKLAYIN</div>
       <div class="image-frame"><img src="./IMG_0127.png"></div>
       <div class="brand-footer">Powered by Kübra Yıldız</div>
     </div>
 
-    <button id="switch-btn">Serbest Modda Taşı</button>
+    <button id="switch-btn">SERBEST MODDA TAŞI</button>
 
     <a-scene 
       id="ar-scene"
@@ -105,10 +99,7 @@
       autoplay animation-name="Animation"
       ar-placement="floor">
       
-      <button slot="ar-button" id="ar-button">
-          AR OLARAK GÖRÜNTÜLE
-      </button>
-
+      <button slot="ar-button" id="ar-button">AR OLARAK GÖRÜNTÜLE</button>
       <button type="button" id="screenshot-btn">📸</button>
     </model-viewer>  
 
@@ -122,7 +113,14 @@
         init: function () {
           const el = this.el;
           el.addEventListener('targetFound', () => {
-            switchBtn.style.display = 'block'; 
+            // Hedef bulunduğunda butonu gizle
+            switchBtn.style.display = 'none'; 
+          });
+          el.addEventListener('targetLost', () => {
+             // Eğer model henüz sabitlenmemişse butonu tekrar göster
+             if(!el.getAttribute('mindar-image-target').autoUpdate === false) {
+                switchBtn.style.display = 'block';
+             }
           });
         }
       });
@@ -132,7 +130,6 @@
         sceneEl.style.display = 'none';
         switchBtn.style.display = 'none';
         mv.style.display = 'block';
-        // mv.activateAR(); // İstersen direkt açar, istersen kullanıcı butona basar. 
       });
 
       screenshotBtn.addEventListener('click', async () => {
