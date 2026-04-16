@@ -1,173 +1,83 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta charset="utf-8" />
-  <title>AR</title>
-
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-
-  <style>
-    html, body {
-      margin: 0;
-      overflow: hidden;
-      background: black;
-    }
-
-    #startUI {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.9);
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      z-index: 10;
-    }
-
-    #startBtn {
-      padding: 18px 30px;
-      font-size: 18px;
-      border-radius: 12px;
-      border: none;
-      background: white;
-    }
-
-    video {
-      position: fixed !important;
-      top: 0;
-      left: 0;
-      width: 100% !important;
-      height: 100% !important;
-      object-fit: cover;
-      z-index: 1;
-    }
-
-    canvas {
-      position: fixed !important;
-      top: 0;
-      left: 0;
-      z-index: 2;
-    }
-  </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kübra Yıldız - AR Fix</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; }
+        /* Kameranın görünmesini engelleyebilecek her şeyi şeffaf yapıyoruz */
+        a-scene { display: block; width: 100vw; height: 100vh; }
+        #info {
+            position: absolute; top: 10px; left: 10px; z-index: 999;
+            background: rgba(0,0,0,0.6); color: white; padding: 10px;
+            font-family: sans-serif; border-radius: 5px; pointer-events: none;
+        }
+    </style>
 </head>
-
 <body>
+    <div id="info">Kamerayı görsele tutun...</div>
 
-<div id="startUI">
-  <button id="startBtn">Start AR</button>
-</div>
+    <a-scene 
+        mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no;" 
+        embedded color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
+        
+        <a-assets>
+            <a-asset-item id="avatarModel" src="./elifiki.glb"></a-asset-item>
+        </a-assets>
 
-<a-scene
-  mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
-  embedded
-  vr-mode-ui="enabled: false"
-  device-orientation-permission-ui="enabled: false"
-  renderer="logarithmicDepthBuffer: true;"
->
+        <a-camera position="0 0 0" look-controls="enabled: true" wasd-controls-enabled="false"></a-camera>
 
-  <a-assets>
-    <a-asset-item id="model" src="./elifiki.glb"></a-asset-item>
-  </a-assets>
+        <a-entity id="example-target" mindar-image-target="targetIndex: 0">
+            <a-gltf-model id="example-model" src="#avatarModel" 
+                position="0 0 0" rotation="0 0 0" scale="0.09 0.09 0.09">
+            </a-gltf-model>
+        </a-entity>
+    </a-scene>
 
-  <a-camera id="camera" look-controls="enabled: false"></a-camera>
+    <script>
+        const model = document.querySelector('#example-model');
+        const target = document.querySelector('#example-target');
+        const info = document.querySelector('#info');
+        let isPinned = false;
 
-  <a-entity id="target" mindar-image-target="targetIndex: 0">
-    <a-entity id="modelEntity" gltf-model="#model" scale="0.3 0.3 0.3"></a-entity>
-  </a-entity>
+        // Hedef bulunduğunda çalışacak mantık
+        target.addEventListener("targetFound", event => {
+            if (isPinned) return;
+            
+            info.innerText = "Hedeflendi! Sabitleniyor...";
+            
+            setTimeout(() => {
+                // Modelin dünyadaki yerini yakala
+                const worldPos = new THREE.Vector3();
+                model.object3D.getWorldPosition(worldPos);
+                
+                const worldQuat = new THREE.Quaternion();
+                model.object3D.getWorldQuaternion(worldQuat);
 
-</a-scene>
+                // Modeli takipçiden kopar ve sahneye (evrene) yapıştır
+                document.querySelector('a-scene').object3D.add(model.object3D);
+                
+                // Yakalanan koordinatları modele geri ver
+                model.object3D.position.copy(worldPos);
+                model.object3D.quaternion.copy(worldQuat);
+                
+                isPinned = true;
+                info.innerText = "Sabitlendi! Artık gezebilirsiniz.";
+                
+                // MindAR'ın artık bu modeli gizlemesini engellemek için
+                model.object3D.visible = true;
+            }, 1000);
+        });
 
-<script>
-const sceneEl = document.querySelector("a-scene");
-const startBtn = document.getElementById("startBtn");
-const startUI = document.getElementById("startUI");
-
-const modelEl = document.getElementById("modelEntity");
-const cameraEl = document.getElementById("camera");
-const targetEl = document.getElementById("target");
-
-let pinned = false;
-let tracking = false;
-let timer = null;
-
-// 🔥 iOS CAMERA FIX
-sceneEl.addEventListener("renderstart", () => {
-  const video = document.querySelector("video");
-  if (video) {
-    video.setAttribute("playsinline", true);
-    video.setAttribute("muted", true);
-    video.setAttribute("autoplay", true);
-  }
-});
-
-// START
-startBtn.addEventListener("click", async () => {
-  try {
-    await sceneEl.systems["mindar-image-system"].start();
-    startUI.style.display = "none";
-  } catch (e) {
-    alert("Camera error: " + e);
-  }
-});
-
-// MODEL
-modelEl.addEventListener("model-loaded", () => {
-  const mesh = modelEl.getObject3D("mesh");
-  mesh.traverse((n) => {
-    if (n.material) {
-      n.material.transparent = true;
-      n.material.opacity = 0.5;
-    }
-  });
-});
-
-// TRACK
-targetEl.addEventListener("targetFound", () => {
-  if (pinned) return;
-
-  tracking = true;
-
-  timer = setTimeout(() => {
-    if (tracking && !pinned) pin();
-  }, 1200);
-});
-
-targetEl.addEventListener("targetLost", () => {
-  tracking = false;
-  if (timer) clearTimeout(timer);
-});
-
-// PIN
-function pin() {
-  pinned = true;
-
-  const obj = modelEl.object3D;
-  obj.updateMatrixWorld(true);
-
-  const m = obj.matrixWorld.clone();
-
-  obj.matrixAutoUpdate = false;
-  obj.matrix.copy(m);
-  obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
-
-  Object.defineProperty(obj, "visible", {
-    get: () => true,
-    set: () => {}
-  });
-
-  const mesh = modelEl.getObject3D("mesh");
-  mesh.traverse((n) => {
-    if (n.material) n.material.opacity = 1;
-  });
-
-  targetEl.setAttribute("mindar-image-target", "enabled: false");
-
-  cameraEl.setAttribute("look-controls", "enabled: true");
-
-  console.log("PIN OK");
-}
-</script>
-
+        // Siyah ekran riskine karşı sahne yüklenince kamerayı dürt
+        document.querySelector('a-scene').addEventListener('loaded', () => {
+            console.log("Sahne yüklendi, AR başlıyor...");
+        });
+    </script>
 </body>
 </html>
