@@ -15,7 +15,6 @@
         background: rgba(0, 0, 0, 0.2); z-index: 2;
       }
       #scanning-overlay img { width: 70%; opacity: 0.5; border: 2px solid white; border-radius: 10px; }
-      #scanning-overlay.hidden { display: none !important; }
     </style>
   </head>
   <body>
@@ -25,9 +24,9 @@
     </div>
 
     <a-scene 
-      id="ar-scene"
-      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay;" 
-      color-space="sRGB" 
+      id="main-scene"
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF:0.0001; filterBeta: 100;" 
+      embedded color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
@@ -39,53 +38,57 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
-        <a-gltf-model 
-          id="original-model"
-          src="#avatarModel" 
-          position="0 0 0" 
-          scale="0.09 0.09 0.09"
-          animation-mixer>
-        </a-gltf-model>
+        <a-entity id="placeholder"></a-entity>
       </a-entity>
+
+      <a-entity id="fixed-container"></a-entity>
     </a-scene>
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const modelEl = document.querySelector('#original-model');
+      const fixedContainer = document.querySelector('#fixed-container');
       const sceneEl = document.querySelector('a-scene');
-      let isPinned = false;
+      let pinned = false;
 
-      trackerEl.addEventListener('targetFound', event => {
-        if (!isPinned) {
-          console.log("Hedef bulundu, çivileme operasyonu başlıyor...");
+      trackerEl.addEventListener('targetFound', () => {
+        if (pinned) return;
+        
+        console.log("Hedef bulundu, model çivileniyor...");
+
+        setTimeout(() => {
+          // 1. Tracker'ın dünyadaki tam konumunu ve açısını al
+          const worldPos = new THREE.Vector3();
+          trackerEl.object3D.getWorldPosition(worldPos);
           
-          setTimeout(() => {
-            // 1. Modelin o anki dünya koordinatlarını hafızaya al
-            const worldPos = new THREE.Vector3();
-            modelEl.object3D.getWorldPosition(worldPos);
-            
-            const worldQuat = new THREE.Quaternion();
-            modelEl.object3D.getWorldQuaternion(worldQuat);
+          const worldQuat = new THREE.Quaternion();
+          trackerEl.object3D.getWorldQuaternion(worldQuat);
 
-            // 2. Modeli tracker hiyerarşisinden TAMAMEN sök ve sahneye ekle
-            // Bu işlem modeli MindAR'ın elinden kurtarır
-            sceneEl.object3D.add(modelEl.object3D);
+          // 2. Yeni bir model elementi oluştur (Klonlama yerine sıfırdan oluşturma en temizi)
+          const finalModel = document.createElement('a-gltf-model');
+          finalModel.setAttribute('src', '#avatarModel');
+          finalModel.setAttribute('scale', '0.09 0.09 0.09');
+          finalModel.setAttribute('animation-mixer', '');
+          
+          // 3. Modeli sahneye (fixed-container içine) ekle
+          fixedContainer.appendChild(finalModel);
 
-            // 3. Modeli kaydettiğimiz koordinatlara "çivile"
-            modelEl.object3D.position.copy(worldPos);
-            modelEl.object3D.quaternion.copy(worldQuat);
+          // 4. Model yüklenince dünyadaki sabit koordinatlarına çivile
+          finalModel.addEventListener('model-loaded', () => {
+            finalModel.object3D.position.copy(worldPos);
+            finalModel.object3D.quaternion.copy(worldQuat);
             
-            // 4. Tracker'ı tamamen sahneden siliyoruz ki MindAR bir daha müdahale edemesin
-            trackerEl.parentNode.removeChild(trackerEl);
-            
-            isPinned = true;
-            console.log("Model özgürlüğünü ilan etti ve çivilendi.");
+            // MindAR'ın bu modeli gizlemesine imkan yok çünkü tracker içinde değil
+            pinned = true;
             
             // UI'ı kaldır
-            const overlay = document.querySelector('#scanning-overlay');
-            if(overlay) overlay.remove();
-          }, 1200); // 1.2 saniye beklemek modelin titremesinin geçmesi için daha güvenli
-        }
+            document.querySelector('#scanning-overlay').remove();
+            
+            // Takipçiyi artık tamamen devredışı bırakabiliriz
+            trackerEl.setAttribute('mindar-image-target', 'enabled', false);
+            
+            console.log("Çivileme tamamlandı!");
+          });
+        }, 1000); // 1 saniye titremenin oturması için ideal
       });
     </script>
   </body>
