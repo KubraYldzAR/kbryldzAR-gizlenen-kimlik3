@@ -51,40 +51,43 @@
     <script>
       const trackerEl = document.querySelector('#target-tracker');
       const modelEl = document.querySelector('#my-model');
-      const sceneEl = document.querySelector('a-scene');
-      let isPinned = false;
+      let pinned = false;
 
       trackerEl.addEventListener('targetFound', () => {
-        if (isPinned) return;
-        
-        console.log("Hedef bulundu, model çivileniyor...");
+        if (pinned) return;
 
-        // Modelin yerine tam oturması için 1 saniye bekliyoruz
+        // Modelin kağıda tam oturması için 1.2 saniye bekle
         setTimeout(() => {
-          // 1. Modelin o anki dünya koordinatlarını (world position) al
-          const worldPos = new THREE.Vector3();
-          modelEl.object3D.getWorldPosition(worldPos);
-          
-          const worldQuat = new THREE.Quaternion();
-          modelEl.object3D.getWorldQuaternion(worldQuat);
+          console.log("Koordinatlar kilitleniyor...");
 
-          // 2. Modeli tracker'dan sök ve doğrudan sahneye (scene) bağla
-          // Bu, MindAR'ın modeli gizlemesine veya titretmesine engel olur
-          sceneEl.object3D.add(modelEl.object3D);
+          // 1. Modelin dünya üzerindeki o anki Matrix (konum/rota/ölçek) verisini dondur
+          const finalMatrix = modelEl.object3D.matrixWorld.clone();
 
-          // 3. Modeli az önce kaydettiğimiz koordinatlara geri oturt
-          modelEl.object3D.position.copy(worldPos);
-          modelEl.object3D.quaternion.copy(worldQuat);
+          // 2. Modeli tracker'dan ÇIKARMIYORUZ ama MindAR'ın onu güncellemesini engelliyoruz
+          // Three.js seviyesinde güncellemeyi kapatıyoruz
+          modelEl.object3D.matrixAutoUpdate = false;
           
-          isPinned = true;
+          // 3. Modeli her zaman görünür olması için zorla (MindAR gizleyemesin)
+          modelEl.object3D.visible = true;
           
-          // 4. Takipçiyi ve UI'ı tamamen kapat
-          trackerEl.setAttribute('mindar-image-target', 'enabled', false);
+          // 4. MatrixWorld'ü manuel olarak sabitliyoruz
+          modelEl.object3D.matrixWorld.copy(finalMatrix);
+
+          // 5. MindAR'ın "visible" değişimlerini engellemek için fonksiyonu eziyoruz
+          const originalVisible = modelEl.object3D.visible;
+          Object.defineProperty(modelEl.object3D, 'visible', {
+            get: function() { return true; }, // Her zaman true dön
+            set: function(v) { /* Hiçbir şey yapma, MindAR false yapamasın */ }
+          });
+
+          pinned = true;
+          
+          // UI temizliği
           const overlay = document.querySelector('#scanning-overlay');
-          if(overlay) overlay.remove();
+          if(overlay) overlay.style.display = 'none';
           
-          console.log("Çivileme başarılı! Model artık bağımsız.");
-        }, 1200); 
+          console.log("Kilitlendi! Artık ne titrer ne de kaybolur.");
+        }, 1200);
       });
     </script>
   </body>
