@@ -29,15 +29,15 @@
       .image-frame { width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; }
       #scanning-overlay img { width: 100%; height: 100%; object-fit: cover; opacity: 0.45; border-radius: 16px; border: 3px solid white; }
 
-      /* Sağ Alt Köşeye Sabitlenen Geçiş Butonu */
+      /* Buton ve İmza Çakışmaması İçin Düzenleme */
       #switch-btn {
-        position: absolute; bottom: 30px; right: 30px;
+        position: absolute; bottom: 80px; right: 30px; /* Biraz yukarı çekildi */
         background: #FFFFFF; color: #7A7A7A; padding: 12px 25px;
         border-radius: 50px; border: 1px solid #F0F0F0;
         font-size: 11px; font-weight: 600; letter-spacing: 1px;
         box-shadow: 0 10px 30px rgba(0,0,0,0.15);
         z-index: 100; cursor: pointer; text-transform: uppercase;
-        display: block; /* Başlangıçta görünür */
+        display: block;
       }
 
       model-viewer {
@@ -63,7 +63,7 @@
         display: none; align-items: center; justify-content: center;
       }
 
-      .brand-footer { position: absolute; bottom: 20px; color: #FFFFFF; font-size: 10px; width: 100%; text-align: center; opacity: 0.5; }
+      .brand-footer { position: absolute; bottom: 30px; color: #FFFFFF; font-size: 10px; width: 100%; text-align: center; opacity: 0.5; letter-spacing: 3px; }
     </style>
   </head>
   <body>
@@ -108,23 +108,34 @@
       const mv = document.getElementById('mv-element');
       const sceneEl = document.getElementById('ar-scene');
       const screenshotBtn = document.getElementById('screenshot-btn');
+      const targetEntity = document.querySelector('#target-entity');
 
       AFRAME.registerComponent('snap-to-place', {
         init: function () {
           const el = this.el;
+          let isFrozen = false;
           el.addEventListener('targetFound', () => {
-            // Hedef bulunduğunda butonu gizle
-            switchBtn.style.display = 'none'; 
+            switchBtn.style.display = 'none'; // Hedef bulununca butonu gizle
+            if (!isFrozen) {
+              setTimeout(() => {
+                const currentPosition = el.object3D.position.clone();
+                const currentRotation = el.object3D.rotation.clone();
+                el.setAttribute('mindar-image-target', {autoUpdate: false});
+                el.object3D.position.copy(currentPosition);
+                el.object3D.rotation.copy(currentRotation);
+                isFrozen = true;
+              }, 1500); 
+            }
           });
           el.addEventListener('targetLost', () => {
-             // Eğer model henüz sabitlenmemişse butonu tekrar göster
-             if(!el.getAttribute('mindar-image-target').autoUpdate === false) {
+             // Sabitlenmediyse butonu geri getir
+             if(el.getAttribute('mindar-image-target').autoUpdate !== false) {
                 switchBtn.style.display = 'block';
              }
           });
         }
       });
-      document.querySelector('#target-entity').setAttribute('snap-to-place', '');
+      targetEntity.setAttribute('snap-to-place', '');
 
       switchBtn.addEventListener('click', () => {
         sceneEl.style.display = 'none';
