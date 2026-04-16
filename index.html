@@ -26,7 +26,7 @@
 
     <a-scene 
       id="ar-scene"
-      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000;" 
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -38,55 +38,52 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="target-tracker" mindar-image-target="targetIndex: 0"></a-entity>
-
-      <a-gltf-model 
-        id="final-model"
-        src="#avatarModel" 
-        visible="false"
-        scale="0.09 0.09 0.09"
-        animation-mixer>
-      </a-gltf-model>
+      <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
+        <a-gltf-model 
+          id="my-model"
+          src="#avatarModel" 
+          position="0 0 0" 
+          scale="0.09 0.09 0.09"
+          animation-mixer>
+        </a-gltf-model>
+      </a-entity>
     </a-scene>
 
     <script>
-      const sceneEl = document.querySelector('a-scene');
       const trackerEl = document.querySelector('#target-tracker');
-      const modelEl = document.querySelector('#final-model');
-      let pinned = false;
+      const modelEl = document.querySelector('#my-model');
+      const sceneEl = document.querySelector('a-scene');
+      let isPinned = false;
 
       trackerEl.addEventListener('targetFound', event => {
-        if (!pinned) {
-          console.log("Hedef ilk kez bulundu, çivileme işlemi başlıyor...");
+        if (!isPinned) {
+          console.log("Hedef bulundu, 1 saniye içinde çivilenecek...");
           
-          // Modelin o andaki dünya koordinatlarını (world position/rotation) yakalayalım
-          // 1 saniye bekliyoruz ki model tam yerine otursun
           setTimeout(() => {
-            // Tracker'ın o anki konumunu ve rotasyonunu al
+            // 1. Modelin dünyadaki mevcut konum ve rotasyonunu al
             const worldPos = new THREE.Vector3();
-            trackerEl.object3D.getWorldPosition(worldPos);
+            modelEl.object3D.getWorldPosition(worldPos);
             
             const worldQuat = new THREE.Quaternion();
-            trackerEl.object3D.getWorldQuaternion(worldQuat);
+            modelEl.object3D.getWorldQuaternion(worldQuat);
 
-            // Bağımsız modelimizi bu koordinatlara ışınla
+            // 2. Modeli takipçinin (tracker) içinden çıkar ve doğrudan sahneye (scene) bağla
+            // Bu sayede MindAR artık bu modeli kontrol edemez/gizleyemez.
+            sceneEl.object3D.add(modelEl.object3D);
+
+            // 3. Modeli az önce kaydettiğimiz dünya koordinatlarına geri oturt
             modelEl.object3D.position.copy(worldPos);
             modelEl.object3D.quaternion.copy(worldQuat);
             
-            // Modeli görünür yap
-            modelEl.setAttribute('visible', 'true');
+            isPinned = true;
+            console.log("Model başarıyla bağımsızlığını ilan etti ve çivilendi!");
             
-            // AR sistemini durdurmaya gerek yok ama istersen durdurabilirsin. 
-            // Model artık tracker'dan bağımsız olduğu için target kaybolsa da o gitmez.
-            pinned = true;
-            console.log("Model sahneye çivilendi.");
-            
-            // İstersen artık overlay'i tamamen kaldırabilirsin
-            document.querySelector('#scanning-overlay').remove();
-          }, 1000);
+            // Overlay'i temizle
+            const overlay = document.querySelector('#scanning-overlay');
+            if(overlay) overlay.remove();
+          }, 1000); 
         }
       });
     </script>
-
   </body>
 </html>
