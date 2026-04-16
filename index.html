@@ -53,34 +53,37 @@
       const modelEl = document.querySelector('#my-model');
       let isPinned = false;
 
+      // Hedef (Kağıt) ilk bulunduğunda tetiklenir
       trackerEl.addEventListener('targetFound', () => {
         if (isPinned) return;
 
         console.log("Hedef bulundu, çivileme işlemi başlıyor...");
         
-        // Modelin titremesinin durması ve yerine tam oturması için 1.5 saniye
+        // Modelin titremesinin geçmesi için 1.5 saniye bekle
         setTimeout(() => {
-          // 1. ADIM: MindAR'ın bu objeyi sürekli güncellemesini durduruyoruz.
-          // 'autoUpdate: false' sayesinde model artık kağıdı takip etmeyi bırakır.
+          // 1. ÖNEMLİ: Takibi durdur (Kağıt hareket etse de model yerinde kalır)
           trackerEl.setAttribute('mindar-image-target', 'autoUpdate', false);
           
-          // 2. ADIM: Hedef kaybolsa bile MindAR'ın objeyi gizlemesini engelliyoruz.
-          // Objenin görünürlük kontrolünü MindAR'dan alıp manuel yapıyoruz.
+          // 2. ÖNEMLİ: Görünürlüğü zorla açık tut
           trackerEl.object3D.visible = true; 
-          
-          // MindAR'ın dahili gizleme fonksiyonunu devre dışı bırakmak için:
-          trackerEl.addEventListener('targetLost', (e) => {
-              trackerEl.object3D.visible = true; // Her kaybolduğunda zorla görünür yap
-          });
 
           isPinned = true;
           
-          // UI temizliği
+          // UI'ı temizle
           const overlay = document.querySelector('#scanning-overlay');
           if(overlay) overlay.style.display = 'none';
           
-          console.log("Model başarıyla resmin koordinatlarına çivilendi.");
+          console.log("Model koordinata çivilendi!");
         }, 1500);
+      });
+
+      // MindAR kağıdı görmeyi bıraktığında tetiklenir
+      trackerEl.addEventListener('targetLost', () => {
+        if (isPinned) {
+          // Kağıt kaybolsa bile modelin görünür kalmasını sağlayan KRİTİK satır:
+          trackerEl.object3D.visible = true; 
+          console.log("Hedef kayboldu ama model hala sahnede!");
+        }
       });
     </script>
   </body>
