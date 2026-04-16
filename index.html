@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; width: 100vw; height: 100vh; }
+      body { margin: 0; overflow: hidden; }
       #scanning-overlay {
         display: flex; align-items: center; justify-content: center;
         position: absolute; left: 0; right: 0; top: 0; bottom: 0;
@@ -35,7 +35,7 @@
         <a-asset-item id="avatarModel" src="./elifiki.glb"></a-asset-item>
       </a-assets>
 
-      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
         <a-gltf-model 
@@ -51,35 +51,36 @@
     <script>
       const trackerEl = document.querySelector('#target-tracker');
       const modelEl = document.querySelector('#my-model');
-      let isFrozen = false;
+      let isPinned = false;
 
       trackerEl.addEventListener('targetFound', () => {
-        if (isFrozen) return;
+        if (isPinned) return;
 
-        // Modelin yerine tam oturması için 1 saniye bekliyoruz
+        console.log("Hedef bulundu, çivileme işlemi başlıyor...");
+        
+        // Modelin titremesinin durması ve yerine tam oturması için 1.5 saniye
         setTimeout(() => {
-          console.log("Çivileme yapılıyor...");
+          // 1. ADIM: MindAR'ın bu objeyi sürekli güncellemesini durduruyoruz.
+          // 'autoUpdate: false' sayesinde model artık kağıdı takip etmeyi bırakır.
+          trackerEl.setAttribute('mindar-image-target', 'autoUpdate', false);
           
-          // 1. Modelin o anki dünya üzerindeki konum/rotasyon/ölçek bilgisini (Matrix) al
-          const currentMatrix = modelEl.object3D.matrixWorld.clone();
+          // 2. ADIM: Hedef kaybolsa bile MindAR'ın objeyi gizlemesini engelliyoruz.
+          // Objenin görünürlük kontrolünü MindAR'dan alıp manuel yapıyoruz.
+          trackerEl.object3D.visible = true; 
+          
+          // MindAR'ın dahili gizleme fonksiyonunu devre dışı bırakmak için:
+          trackerEl.addEventListener('targetLost', (e) => {
+              trackerEl.object3D.visible = true; // Her kaybolduğunda zorla görünür yap
+          });
 
-          // 2. Modeli takipçiden (tracker) ayırıp sahnenin ana köküne bağla
-          // Bu sayede MindAR hedefi kaybetse bile modeli gizleyemez
-          document.querySelector('a-scene').object3D.add(modelEl.object3D);
-
-          // 3. Matrix'i tekrar uygula (Böylece konumu bozulmaz)
-          modelEl.object3D.matrixAutoUpdate = false; // Otomatik güncellemeyi kapat (çivile)
-          modelEl.object3D.matrix.copy(currentMatrix);
-          modelEl.object3D.matrixWorldNeedsUpdate = true;
-
-          isFrozen = true;
+          isPinned = true;
           
           // UI temizliği
           const overlay = document.querySelector('#scanning-overlay');
           if(overlay) overlay.style.display = 'none';
           
-          console.log("Çivi çakıldı!");
-        }, 1000);
+          console.log("Model başarıyla resmin koordinatlarına çivilendi.");
+        }, 1500);
       });
     </script>
   </body>
