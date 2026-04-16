@@ -40,7 +40,7 @@
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
         <a-gltf-model 
-          id="my-model"
+          id="original-model"
           src="#avatarModel" 
           position="0 0 0" 
           scale="0.09 0.09 0.09"
@@ -51,41 +51,40 @@
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const modelEl = document.querySelector('#my-model');
+      const modelEl = document.querySelector('#original-model');
       const sceneEl = document.querySelector('a-scene');
       let isPinned = false;
 
       trackerEl.addEventListener('targetFound', event => {
         if (!isPinned) {
-          console.log("Hedef yakalandı, sabitleme süreci başladı...");
+          console.log("Hedef bulundu, çivileme operasyonu başlıyor...");
           
           setTimeout(() => {
-            // 1. Modelin o anki dünya koordinatlarını al
+            // 1. Modelin o anki dünya koordinatlarını hafızaya al
             const worldPos = new THREE.Vector3();
             modelEl.object3D.getWorldPosition(worldPos);
             
             const worldQuat = new THREE.Quaternion();
             modelEl.object3D.getWorldQuaternion(worldQuat);
 
-            // 2. Modeli tracker'dan ayırıp doğrudan sahneye (scene) ekle
-            // Bu sayede MindAR'ın gizleme/gösterme kontrolünden çıkarıyoruz.
+            // 2. Modeli tracker hiyerarşisinden TAMAMEN sök ve sahneye ekle
+            // Bu işlem modeli MindAR'ın elinden kurtarır
             sceneEl.object3D.add(modelEl.object3D);
 
-            // 3. Modeli kaydettiğimiz dünya koordinatlarına geri oturt
+            // 3. Modeli kaydettiğimiz koordinatlara "çivile"
             modelEl.object3D.position.copy(worldPos);
             modelEl.object3D.quaternion.copy(worldQuat);
             
-            // 4. MindAR takip sistemini durdurmuyoruz (beyaz ekran olmasın diye)
-            // Sadece bu hedef için takibi mantıksal olarak devredışı bırakıyoruz.
-            trackerEl.setAttribute('mindar-image-target', 'enabled', false);
+            // 4. Tracker'ı tamamen sahneden siliyoruz ki MindAR bir daha müdahale edemesin
+            trackerEl.parentNode.removeChild(trackerEl);
             
             isPinned = true;
-            console.log("Model başarıyla çivilendi. Kamera ve sahne aktif.");
+            console.log("Model özgürlüğünü ilan etti ve çivilendi.");
             
-            // UI temizliği
+            // UI'ı kaldır
             const overlay = document.querySelector('#scanning-overlay');
             if(overlay) overlay.remove();
-          }, 1000); 
+          }, 1200); // 1.2 saniye beklemek modelin titremesinin geçmesi için daha güvenli
         }
       });
     </script>
