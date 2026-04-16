@@ -4,119 +4,155 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Kübra Yıldız - AR Experience</title>
+    
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
+    <script type="module" src="https://ajax.googleapis.com/ajax/libs/model-viewer/3.5.0/model-viewer.min.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #000; }
       
-      /* Saf Beyaz ve Gri Minimalist Tasarım */
+      /* Tasarım: Beyaz ve Gri Minimalist Arayüz */
       #scanning-overlay {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-        background: rgba(255, 255, 255, 0.1); 
-        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
-        z-index: 2;
+        position: absolute; inset: 0; background: rgba(255, 255, 255, 0.1); 
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 2;
       }
 
-      /* Beyaz Bilgi Kutusu - Gri Detaylı */
       .info-card {
-        background: #FFFFFF;
-        padding: 12px 35px; border-radius: 50px;
-        margin-bottom: 30px; 
-        border: 1px solid #F0F0F0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
-        color: #7A7A7A; /* Yumuşak Gri */
-        font-size: 13px; font-weight: 500; letter-spacing: 1px;
-        text-transform: uppercase;
+        background: #FFFFFF; padding: 12px 35px; border-radius: 50px;
+        margin-bottom: 30px; border: 1px solid #F0F0F0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06); color: #7A7A7A;
+        font-size: 13px; font-weight: 500; letter-spacing: 1px; text-transform: uppercase;
       }
 
-      /* Referans Görsel Çerçevesi */
-      .image-frame {
-        position: relative; width: 260px; height: 260px;
-        display: flex; align-items: center; justify-content: center;
-      }
-
-      #scanning-overlay img { 
-        width: 100%; height: 100%; object-fit: cover;
-        opacity: 0.45; border-radius: 16px;
-        border: 3px solid white;
-        box-shadow: 0 0 0 1px rgba(224, 224, 224, 0.5);
-      }
-
+      .image-frame { width: 260px; height: 260px; display: flex; align-items: center; justify-content: center; }
+      #scanning-overlay img { width: 100%; height: 100%; object-fit: cover; opacity: 0.45; border-radius: 16px; border: 3px solid white; }
       #scanning-overlay.hidden { display: none !important; }
 
-      .brand-footer {
-        position: absolute; bottom: 50px; color: #FFFFFF;
-        font-size: 11px; letter-spacing: 4px;
-        opacity: 0.7; font-weight: 400;
-        text-transform: uppercase;
+      /* Serbest Moda Geçiş Butonu */
+      #switch-btn {
+        position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+        background: #FFFFFF; color: #7A7A7A; padding: 15px 35px;
+        border-radius: 50px; border: 1px solid #F0F0F0;
+        font-size: 12px; font-weight: 600; letter-spacing: 1px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        z-index: 100; display: none; cursor: pointer; text-transform: uppercase;
       }
+
+      /* Model Viewer ve Fotoğraf Tuşu */
+      model-viewer {
+        display: none; position: absolute; inset: 0; width: 100%; height: 100%;
+        background: #f8f9fa; z-index: 200;
+      }
+
+      #screenshot-btn {
+        display: none; position: absolute; bottom: 40px; right: 30px;
+        width: 65px; height: 65px; border-radius: 50%;
+        background: white; border: 4px solid #f0f0f0;
+        cursor: pointer; z-index: 999; font-size: 24px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+        align-items: center; justify-content: center; outline: none;
+      }
+
+      .brand-footer { position: absolute; bottom: 20px; color: #FFFFFF; font-size: 10px; width: 100%; text-align: center; opacity: 0.5; }
     </style>
   </head>
   <body>
 
     <div id="scanning-overlay">
       <div class="info-card">Görseli Odaklayın</div>
-      <div class="image-frame">
-        <img src="./IMG_0127.png">
-      </div>
+      <div class="image-frame"><img src="./IMG_0127.png"></div>
       <div class="brand-footer">Powered by Kübra Yıldız</div>
     </div>
 
+    <button id="switch-btn">Serbest Modda Taşı</button>
+
     <a-scene 
+      id="ar-scene"
       mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000;" 
-      color-space="sRGB" 
-      renderer="colorManagement: true, physicallyCorrectLights" 
-      vr-mode-ui="enabled: false" 
-      device-orientation-permission-ui="enabled: false">
+      color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
       
-      <a-assets>
-        <a-asset-item id="avatarModel" src="./elifiki.glb"></a-asset-item>
-      </a-assets>
-
+      <a-assets><a-asset-item id="avatarModel" src="elifiki.glb"></a-asset-item></a-assets>
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
-
       <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
-        <a-gltf-model 
-          id="frozen-model"
-          src="#avatarModel" 
-          rotation="0 0 0" 
-          position="0 0 0.001" 
-          scale="0.09 0.09 0.09"
-          animation-mixer>
-        </a-gltf-model>
+        <a-gltf-model src="#avatarModel" position="0 0 0.001" scale="0.09 0.09 0.09" animation-mixer></a-gltf-model>
       </a-entity>
     </a-scene>
 
+    <model-viewer 
+      id="mv-element" 
+      src="elifiki.glb" 
+      ios-src="elifiki.usdz"
+      poster="poster.webp"
+      ar ar-modes="webxr scene-viewer quick-look" 
+      camera-controls shadow-intensity="1"
+      autoplay animation-name="Animation"
+      ar-placement="floor"
+      loading="eager"
+      reveal="auto">
+      
+      <button slot="ar-button" style="display:none;"></button>
+      <button type="button" id="screenshot-btn">📸</button>
+    </model-viewer>  
+
     <script>
-      // Orijinal Component yapın korunmuştur.
+      const switchBtn = document.getElementById('switch-btn');
+      const mv = document.getElementById('mv-element');
+      const sceneEl = document.getElementById('ar-scene');
+      const screenshotBtn = document.getElementById('screenshot-btn');
+
+      // MindAR Hedef Takibi ve Sabitleme Mantığı
       AFRAME.registerComponent('snap-to-place', {
         init: function () {
           const el = this.el;
           let isFrozen = false;
-
-          el.addEventListener('targetFound', event => {
+          el.addEventListener('targetFound', () => {
+            switchBtn.style.display = 'block'; 
             if (!isFrozen) {
               setTimeout(() => {
                 const currentPosition = el.object3D.position.clone();
                 const currentRotation = el.object3D.rotation.clone();
-
                 el.setAttribute('mindar-image-target', {autoUpdate: false});
-                
                 el.object3D.position.copy(currentPosition);
                 el.object3D.rotation.copy(currentRotation);
-                
                 isFrozen = true;
               }, 1500); 
             }
           });
         }
       });
-
       document.querySelector('#target-entity').setAttribute('snap-to-place', '');
-    </script>
 
+      // Serbest Moda (Model Viewer) Geçiş
+      switchBtn.addEventListener('click', () => {
+        sceneEl.style.display = 'none';
+        switchBtn.style.display = 'none';
+        mv.style.display = 'block';
+        mv.activateAR(); // Otomatik AR kamerasını başlatır
+      });
+
+      // Fotoğraf Çekme İşlemi
+      screenshotBtn.addEventListener('click', async () => {
+        const blob = await mv.toBlob({ idealAspect: true });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AR_Hatira_KubraYildiz.png`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+
+      // AR Durumuna göre Fotoğraf Butonunu Göster/Gizle
+      mv.addEventListener("ar-status", (event) => {
+        if (event.detail.status === "session-started") {
+          screenshotBtn.style.display = "flex";
+        } else if (event.detail.status === "not-presenting") {
+          screenshotBtn.style.display = "none";
+        }
+      });
+    </script>
   </body>
 </html>
