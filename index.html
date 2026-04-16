@@ -8,7 +8,7 @@
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; }
+      body { margin: 0; overflow: hidden; width: 100vw; height: 100vh; }
       #scanning-overlay {
         display: flex; align-items: center; justify-content: center;
         position: absolute; left: 0; right: 0; top: 0; bottom: 0;
@@ -26,7 +26,7 @@
     <a-scene 
       id="main-scene"
       mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF:0.0001; filterBeta: 100;" 
-      embedded color-space="sRGB" 
+      color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
       device-orientation-permission-ui="enabled: false">
@@ -38,57 +38,48 @@
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
-        <a-entity id="placeholder"></a-entity>
+        <a-gltf-model 
+          id="my-model"
+          src="#avatarModel" 
+          position="0 0 0" 
+          scale="0.09 0.09 0.09"
+          animation-mixer>
+        </a-gltf-model>
       </a-entity>
-
-      <a-entity id="fixed-container"></a-entity>
     </a-scene>
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const fixedContainer = document.querySelector('#fixed-container');
-      const sceneEl = document.querySelector('a-scene');
-      let pinned = false;
+      const modelEl = document.querySelector('#my-model');
+      let isFrozen = false;
 
       trackerEl.addEventListener('targetFound', () => {
-        if (pinned) return;
-        
-        console.log("Hedef bulundu, model çivileniyor...");
+        if (isFrozen) return;
 
+        // Modelin yerine tam oturması için 1 saniye bekliyoruz
         setTimeout(() => {
-          // 1. Tracker'ın dünyadaki tam konumunu ve açısını al
-          const worldPos = new THREE.Vector3();
-          trackerEl.object3D.getWorldPosition(worldPos);
+          console.log("Çivileme yapılıyor...");
           
-          const worldQuat = new THREE.Quaternion();
-          trackerEl.object3D.getWorldQuaternion(worldQuat);
+          // 1. Modelin o anki dünya üzerindeki konum/rotasyon/ölçek bilgisini (Matrix) al
+          const currentMatrix = modelEl.object3D.matrixWorld.clone();
 
-          // 2. Yeni bir model elementi oluştur (Klonlama yerine sıfırdan oluşturma en temizi)
-          const finalModel = document.createElement('a-gltf-model');
-          finalModel.setAttribute('src', '#avatarModel');
-          finalModel.setAttribute('scale', '0.09 0.09 0.09');
-          finalModel.setAttribute('animation-mixer', '');
+          // 2. Modeli takipçiden (tracker) ayırıp sahnenin ana köküne bağla
+          // Bu sayede MindAR hedefi kaybetse bile modeli gizleyemez
+          document.querySelector('a-scene').object3D.add(modelEl.object3D);
+
+          // 3. Matrix'i tekrar uygula (Böylece konumu bozulmaz)
+          modelEl.object3D.matrixAutoUpdate = false; // Otomatik güncellemeyi kapat (çivile)
+          modelEl.object3D.matrix.copy(currentMatrix);
+          modelEl.object3D.matrixWorldNeedsUpdate = true;
+
+          isFrozen = true;
           
-          // 3. Modeli sahneye (fixed-container içine) ekle
-          fixedContainer.appendChild(finalModel);
-
-          // 4. Model yüklenince dünyadaki sabit koordinatlarına çivile
-          finalModel.addEventListener('model-loaded', () => {
-            finalModel.object3D.position.copy(worldPos);
-            finalModel.object3D.quaternion.copy(worldQuat);
-            
-            // MindAR'ın bu modeli gizlemesine imkan yok çünkü tracker içinde değil
-            pinned = true;
-            
-            // UI'ı kaldır
-            document.querySelector('#scanning-overlay').remove();
-            
-            // Takipçiyi artık tamamen devredışı bırakabiliriz
-            trackerEl.setAttribute('mindar-image-target', 'enabled', false);
-            
-            console.log("Çivileme tamamlandı!");
-          });
-        }, 1000); // 1 saniye titremenin oturması için ideal
+          // UI temizliği
+          const overlay = document.querySelector('#scanning-overlay');
+          if(overlay) overlay.style.display = 'none';
+          
+          console.log("Çivi çakıldı!");
+        }, 1000);
       });
     </script>
   </body>
