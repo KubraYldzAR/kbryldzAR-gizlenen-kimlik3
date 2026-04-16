@@ -1,94 +1,111 @@
 <!DOCTYPE html>
-<html>
+<html lang="tr">
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Animated AR Fix</title>
-    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.0.0/dist/aframe-extras.min.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AR Deneyimi</title>
+    
+    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1.1/dist/mindar-image-aframe.prod.js"></script>
+
     <style>
-        body { margin: 0; overflow: hidden; }
-        #overlay { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; pointer-events: none; }
-        .guide-img { width: 65%; border: 2px solid white; border-radius: 15px; opacity: 0.6; margin-bottom: 20px; }
-        .status-pill { background: rgba(0,0,0,0.8); color: white; padding: 12px 24px; border-radius: 50px; font-family: sans-serif; font-weight: bold; }
-        .hidden { display: none !important; }
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #000;
+        }
+
+        /* Sade ve şık rehber arayüzü */
+        #ui-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 10;
+            background: rgba(0, 0, 0, 0.4);
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .instruction-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 12px 24px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            color: #1a1a1a;
+            font-size: 16px;
+            font-weight: 500;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        /* Yarı saydam referans görseli */
+        #reference-image {
+            width: 65%;
+            max-width: 280px;
+            opacity: 0.5;
+            border: 2px dashed rgba(255, 255, 255, 0.7);
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        /* Hedef bulununca arayüzü gizleyen sınıf */
+        .hidden {
+            opacity: 0 !important;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
 
-    <div id="overlay">
-        <img src="./IMG_0127.png" class="guide-img" id="guide">
-        <div class="status-pill" id="status">Kamerayı görsele tutun...</div>
+    <div id="ui-container">
+        <div class="instruction-box">Lütfen kamerayı hedef görsele hizalayın</div>
+        <img id="reference-image" src="IMG_0127.png" alt="Hedef Görsel">
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiScanning: no;" 
-        color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights"
-        vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+        mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; autoStart: true;" 
+        color-space="sRGB" 
+        renderer="colorManagement: true, physicallyCorrectLights" 
+        vr-mode-ui="enabled: false" 
+        device-orientation-permission-ui="enabled: false">
         
         <a-assets>
-            <a-asset-item id="animatedModel" src="./elifiki.glb"></a-asset-item>
+            <a-asset-item id="modelAsset" src="elifiki.glb"></a-asset-item>
         </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
+        <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity id="target-sensor" mindar-image-target="targetIndex: 0"></a-entity>
-
-        <a-entity id="final-model" 
-            gltf-model="#animatedModel" 
-            scale="0.09 0.09 0.09" 
-            visible="false"
-            animation-mixer>
+        <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
+            <a-gltf-model src="#modelAsset" position="0 0 0" scale="1 1 1" rotation="0 0 0" animation-mixer></a-gltf-model>
         </a-entity>
-
     </a-scene>
 
     <script>
-        const sensor = document.querySelector('#target-sensor');
-        const model = document.querySelector('#final-model');
-        const status = document.querySelector('#status');
-        const guide = document.querySelector('#guide');
-        let isPinned = false;
+        document.addEventListener("DOMContentLoaded", function() {
+            const targetEntity = document.querySelector('#target-entity');
+            const uiContainer = document.querySelector('#ui-container');
 
-        sensor.addEventListener("targetFound", () => {
-            if (isPinned) return;
-            
-            status.innerText = "Hedeflendi! 1 saniye içinde çivilenecek...";
-            
-            setTimeout(() => {
-                if (isPinned) return;
+            // Hedef görsel algılandığında (bulunduğunda) referans resmini ve yazıyı yok et
+            targetEntity.addEventListener("targetFound", event => {
+                uiContainer.classList.add('hidden');
+            });
 
-                // 1. Sensörün (takipçinin) o anki konumunu yakala
-                const worldPos = new THREE.Vector3();
-                const worldQuat = new THREE.Quaternion();
-                
-                sensor.object3D.getWorldPosition(worldPos);
-                sensor.object3D.getWorldQuaternion(worldQuat);
-
-                // 2. Modeli yakalanan koordinatlara taşı
-                model.object3D.position.copy(worldPos);
-                model.object3D.quaternion.copy(worldQuat);
-                
-                // 3. Modeli görünür yap
-                model.setAttribute('visible', 'true');
-                
-                // 4. Sabitleme Kilidi
-                isPinned = true;
-                
-                // UI Güncelle
-                guide.classList.add('hidden');
-                status.innerText = "SABİTLENDİ. Hareket edebilirsiniz!";
-
-                // Animasyonun devam etmesi için matrixAutoUpdate'i kapatmıyoruz,
-                // sadece modelin takipçiyle olan hiyerarşik bağını hiç kurmuyoruz.
-            }, 1000); 
-        });
-
-        // Hedef kaybolduğunda MindAR'ın modeli silme çabasını boşa çıkarıyoruz
-        sensor.addEventListener("targetLost", () => {
-            if (isPinned) {
-                console.log("Hedef kayboldu ama model sabit kalmaya devam ediyor.");
-            }
+            // Kamera hedefi kaybederse kullanıcının tekrar taraması için geri getir
+            targetEntity.addEventListener("targetLost", event => {
+                uiContainer.classList.remove('hidden');
+            });
         });
     </script>
 </body>
