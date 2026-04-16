@@ -40,56 +40,52 @@
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
         <a-gltf-model 
-          id="temp-model"
+          id="my-model"
           src="#avatarModel" 
           position="0 0 0" 
           scale="0.09 0.09 0.09"
           animation-mixer>
         </a-gltf-model>
       </a-entity>
-
-      <a-entity id="anchor"></a-entity>
     </a-scene>
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const tempModel = document.querySelector('#temp-model');
-      const anchorEl = document.querySelector('#anchor');
+      const modelEl = document.querySelector('#my-model');
       const sceneEl = document.querySelector('a-scene');
       let isPinned = false;
 
-      trackerEl.addEventListener('targetFound', () => {
+      trackerEl.addEventListener('targetFound', event => {
         if (!isPinned) {
-          console.log("Hedef bulundu, çivileme hazırlanıyor...");
+          console.log("Hedef yakalandı, sabitleme süreci başladı...");
           
-          // Modelin tam oturması için kısa bir bekleme
           setTimeout(() => {
-            // 1. Orijinal modelin dünya konum ve rotasyonunu al
+            // 1. Modelin o anki dünya koordinatlarını al
             const worldPos = new THREE.Vector3();
-            tempModel.object3D.getWorldPosition(worldPos);
+            modelEl.object3D.getWorldPosition(worldPos);
             
             const worldQuat = new THREE.Quaternion();
-            tempModel.object3D.getWorldQuaternion(worldQuat);
+            modelEl.object3D.getWorldQuaternion(worldQuat);
 
-            // 2. Takipçiyi (MindAR sistemini) tamamen durdur
-            // Bu sayede kamera açık kalır ama MindAR artık objeleri gizleyemez
-            sceneEl.systems['mindar-image-system'].stop();
+            // 2. Modeli tracker'dan ayırıp doğrudan sahneye (scene) ekle
+            // Bu sayede MindAR'ın gizleme/gösterme kontrolünden çıkarıyoruz.
+            sceneEl.object3D.add(modelEl.object3D);
 
-            // 3. Modeli sahnedeki sabit 'anchor' entity'sine taşı
-            anchorEl.object3D.add(tempModel.object3D);
+            // 3. Modeli kaydettiğimiz dünya koordinatlarına geri oturt
+            modelEl.object3D.position.copy(worldPos);
+            modelEl.object3D.quaternion.copy(worldQuat);
             
-            // 4. Konumları çivile
-            tempModel.object3D.position.copy(worldPos);
-            tempModel.object3D.quaternion.copy(worldQuat);
+            // 4. MindAR takip sistemini durdurmuyoruz (beyaz ekran olmasın diye)
+            // Sadece bu hedef için takibi mantıksal olarak devredışı bırakıyoruz.
+            trackerEl.setAttribute('mindar-image-target', 'enabled', false);
             
             isPinned = true;
+            console.log("Model başarıyla çivilendi. Kamera ve sahne aktif.");
             
             // UI temizliği
             const overlay = document.querySelector('#scanning-overlay');
-            if(overlay) overlay.style.display = 'none';
-            
-            console.log("Model başarıyla dünyaya çivilendi!");
-          }, 800); // 1 saniyeden biraz daha az bekletmek geçişi yumuşatır
+            if(overlay) overlay.remove();
+          }, 1000); 
         }
       });
     </script>
