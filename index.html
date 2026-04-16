@@ -25,8 +25,7 @@
     </div>
 
     <a-scene 
-      id="ar-scene"
-      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.001; filterBeta: 10;" 
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
       vr-mode-ui="enabled: false" 
@@ -40,9 +39,10 @@
 
       <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
         <a-gltf-model 
+          id="frozen-model"
           src="#avatarModel" 
           rotation="0 0 0" 
-          position="0 0 0" 
+          position="0 0 0.001" 
           scale="0.09 0.09 0.09"
           animation-mixer>
         </a-gltf-model>
@@ -50,17 +50,39 @@
     </a-scene>
 
     <script>
-      const sceneEl = document.querySelector('a-scene');
-      const targetEl = document.querySelector('#target-entity');
+      AFRAME.registerComponent('snap-to-place', {
+        init: function () {
+          const el = this.el;
+          let isFrozen = false;
 
-      targetEl.addEventListener("targetFound", event => {
-        // Hedef bulunduğunda 1 saniye sonra sistemi dondurur.
-        // Bu süre modelin yerine tam yerleşmesi ve titremenin durması içindir.
-        setTimeout(() => {
-          sceneEl.systems['mindar-image-system'].stop();
-          console.log("Model merkeze oturdu ve takip donduruldu.");
-        }, 1000); 
+          el.addEventListener('targetFound', event => {
+            if (!isFrozen) {
+              // Hedef bulundu, model tam oturana kadar 1.5 saniye bekleyelim.
+              console.log("Hedef bulundu, model yerine oturuyor...");
+              
+              setTimeout(() => {
+                // Modelin hedefe göre olan güncel konum ve rotasyonunu al.
+                const currentPosition = el.object3D.position.clone();
+                const currentRotation = el.object3D.rotation.clone();
+
+                // MindAR'ın bu objeyi güncellemesini durdur.
+                // Artik model 'frozen' durumda ama kamera açık.
+                el.setAttribute('mindar-image-target', {autoUpdate: false});
+                
+                // Kaydettiğimiz değerleri modele geri vererek sabitle.
+                el.object3D.position.copy(currentPosition);
+                el.object3D.rotation.copy(currentRotation);
+                
+                isFrozen = true;
+                console.log("Model matematiksel olarak sabitlendi ve kamera açık kaldı.");
+              }, 1500); // 1.5 saniye bekletmek daha dengeli olur.
+            }
+          });
+        }
       });
+
+      // Sahneye kendi component'imizi ekliyoruz.
+      document.querySelector('#target-entity').setAttribute('snap-to-place', '');
     </script>
 
   </body>
