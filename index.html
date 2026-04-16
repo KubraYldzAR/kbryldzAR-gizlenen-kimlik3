@@ -1,178 +1,185 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AR Image Tracking</title>
+  <meta charset="utf-8" />
+  <title>AR Experience</title>
 
-  <!-- A-Frame v1.5.0 -->
+  <!-- A-Frame -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-  <!-- MindAR v1.2.5 -->
+
+  <!-- MindAR -->
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
-    html, body { width: 100%; height: 100%; overflow: hidden; background: #000; }
-    a-scene { width: 100vw !important; height: 100vh !important; }
-
-    #status-overlay {
-      position: fixed; top: 16px; left: 50%;
-      transform: translateX(-50%); z-index: 9999;
-      padding: 8px 20px; border-radius: 20px;
-      font-family: sans-serif; font-size: 14px;
-      font-weight: bold; pointer-events: none;
-      background: rgba(0,0,0,0.6); color: #fff;
+    html, body {
+      margin: 0;
+      padding: 0;
+      overflow: hidden;
+      width: 100%;
+      height: 100%;
+      background: black;
     }
-    #status-overlay.tracking { background: rgba(255,180,0,0.85); color: #000; }
-    #status-overlay.pinned   { background: rgba(0,200,100,0.9);  color: #fff; }
 
-    #ui-overlay {
-      position: fixed; bottom: 24px; left: 50%;
-      transform: translateX(-50%); z-index: 9999;
-      pointer-events: none; opacity: 0; transition: opacity 0.6s;
+    a-scene {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
     }
-    #ui-overlay.visible { opacity: 1; }
-    #ui-overlay img { width: 160px; border-radius: 12px; }
+
+    #startOverlay {
+      position: fixed;
+      z-index: 10;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.9);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    #startButton {
+      padding: 16px 28px;
+      font-size: 18px;
+      border-radius: 10px;
+      border: none;
+      background: white;
+      color: black;
+    }
+
+    #guide {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 140px;
+      z-index: 5;
+      opacity: 0.8;
+    }
   </style>
 </head>
+
 <body>
 
-  <div id="status-overlay">Hedef aranıyor...</div>
-  <div id="ui-overlay">
-    <img src="./IMG_0127.png" alt="UI Overlay" />
-  </div>
+<div id="startOverlay">
+  <button id="startButton">Start AR</button>
+</div>
 
-  <a-scene
-    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;
-      uiLoading: no; uiError: no; uiScanning: no;"
-    color-space="sRGB"
-    renderer="colorManagement: true; physicallyCorrectLights: true;"
-    vr-mode-ui="enabled: false"
-    device-orientation-permission-ui="enabled: false"
-  >
-    <a-assets>
-      <a-asset-item id="model" src="./elifiki.glb"></a-asset-item>
-    </a-assets>
+<img id="guide" src="./IMG_0127.png" />
 
-    <!-- Kamera: pin sonrası look-controls açılır -->
-    <a-camera id="ar-camera" look-controls="enabled: false" position="0 0 0"></a-camera>
+<a-scene
+  mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
+  renderer="colorManagement: true, physicallyCorrectLights"
+  vr-mode-ui="enabled: false"
+  device-orientation-permission-ui="enabled: false"
+>
 
-    <!-- MindAR hedef çapası -->
-    <a-entity id="target-anchor" mindar-image-target="targetIndex: 0">
-      <a-entity
-        id="ar-model"
-        gltf-model="#model"
-        position="0 0 0" rotation="0 0 0" scale="1 1 1"
-        visible="false" opacity="0.5"
-      ></a-entity>
-    </a-entity>
-  </a-scene>
+  <a-assets timeout="10000">
+    <a-asset-item id="model" src="./elifiki.glb"></a-asset-item>
+  </a-assets>
 
-  <script>
-  (function () {
-    // ── Durum değişkenleri ────────────────────────────
-    let isPinned    = false;
-    let stableTimer = null;
-    const STABLE_DELAY = 1200; // ms
+  <a-camera id="camera" look-controls="enabled: false"></a-camera>
 
-    // ── DOM referansları ──────────────────────────────
-    const statusEl  = document.getElementById('status-overlay');
-    const uiOverlay = document.getElementById('ui-overlay');
-    const sceneEl   = document.querySelector('a-scene');
-    const anchorEl  = document.getElementById('target-anchor');
-    const modelEl   = document.getElementById('ar-model');
-    const cameraEl  = document.getElementById('ar-camera');
+  <a-entity mindar-image-target="targetIndex: 0">
 
-    // ── Yardımcı fonksiyonlar ─────────────────────────
-    function setStatus(msg, cls) {
-      statusEl.textContent = msg;
-      statusEl.className   = cls || '';
+    <a-entity
+      id="modelEntity"
+      gltf-model="#model"
+      scale="0.3 0.3 0.3"
+      position="0 0 0"
+    ></a-entity>
+
+  </a-entity>
+
+</a-scene>
+
+<script>
+  const sceneEl = document.querySelector("a-scene");
+  const startBtn = document.getElementById("startButton");
+  const overlay = document.getElementById("startOverlay");
+  const modelEl = document.getElementById("modelEntity");
+  const cameraEl = document.getElementById("camera");
+  const targetEl = document.querySelector("[mindar-image-target]");
+
+  let pinned = false;
+  let tracking = false;
+  let timer = null;
+
+  // START AR (CRITICAL FIX)
+  startBtn.addEventListener("click", async () => {
+    overlay.style.display = "none";
+    await sceneEl.systems["mindar-image-system"].start();
+  });
+
+  // MODEL LOADED → HALF TRANSPARENT
+  modelEl.addEventListener("model-loaded", () => {
+    const mesh = modelEl.getObject3D("mesh");
+
+    mesh.traverse((node) => {
+      if (node.material) {
+        node.material.transparent = true;
+        node.material.opacity = 0.5;
+      }
+    });
+  });
+
+  // TARGET FOUND
+  targetEl.addEventListener("targetFound", () => {
+    if (pinned) return;
+
+    tracking = true;
+
+    timer = setTimeout(() => {
+      if (tracking && !pinned) {
+        pinModel();
+      }
+    }, 1200);
+  });
+
+  // TARGET LOST
+  targetEl.addEventListener("targetLost", () => {
+    tracking = false;
+
+    if (timer) {
+      clearTimeout(timer);
+      timer = null;
     }
+  });
 
-    // Anti-Kaybolma: visible setter'ı override et
-    function lockVisibility(el) {
-      const obj = el.object3D;
-      let _visible = true;
-      Object.defineProperty(obj, 'visible', {
-        get: () => _visible,
-        set: (v) => { _visible = isPinned ? true : v; },
-        configurable: true,
-      });
-      obj.visible = true;
-    }
+  function pinModel() {
+    pinned = true;
 
-    // Modeli dünya koordinatlarında dondur
-    function pinModelInWorld() {
-      if (isPinned) return;
-      isPinned = true;
+    const obj = modelEl.object3D;
 
-      const modelObj  = modelEl.object3D;
-      const sceneObj  = sceneEl.object3D;
+    obj.updateMatrixWorld(true);
 
-      // 1. Dünya matrisini yakala
-      modelObj.updateWorldMatrix(true, true);
-      const worldMatrix = modelObj.matrixWorld.clone();
+    const worldMatrix = obj.matrixWorld.clone();
 
-      // 2. Çapadan kopar, sahneye ekle
-      anchorEl.object3D.remove(modelObj);
-      sceneObj.add(modelObj);
+    obj.matrixAutoUpdate = false;
+    obj.matrix.copy(worldMatrix);
+    obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
 
-      // 3. Yakalanan matrisi uygula
-      modelObj.matrix.copy(worldMatrix);
-      modelObj.matrix.decompose(
-        modelObj.position, modelObj.quaternion, modelObj.scale
-      );
-
-      // 4. Titreme yok: otomatik güncellemeyi kapat
-      modelObj.matrixAutoUpdate = false;
-
-      // 5. Görünürlüğü kilitle
-      lockVisibility(modelEl);
-
-      // 6. Tam opak yap
-      modelEl.setAttribute('opacity', '1.0');
-      modelEl.setAttribute('visible', true);
-
-      // 7. Kamera kontrolünü aç
-      cameraEl.setAttribute('look-controls', 'enabled: true');
-
-      // 8. UI overlay göster
-      uiOverlay.classList.add('visible');
-
-      // 9. HUD güncelle
-      setStatus('Model sabitlendi!', 'pinned');
-    }
-
-    // ── MindAR Olayları ───────────────────────────────
-    anchorEl.addEventListener('targetFound', () => {
-      if (isPinned) return;
-      setStatus('Hedef bulundu — sabitleniyor...', 'tracking');
-      modelEl.setAttribute('visible', true);
-      modelEl.setAttribute('opacity', '0.5');
-
-      clearTimeout(stableTimer);
-      stableTimer = setTimeout(pinModelInWorld, STABLE_DELAY);
+    // FORCE VISIBILITY
+    Object.defineProperty(obj, "visible", {
+      get: () => true,
+      set: () => {}
     });
 
-    anchorEl.addEventListener('targetLost', () => {
-      if (isPinned) return; // Zaten sabitlendi, yoksay
-      clearTimeout(stableTimer);
-      modelEl.setAttribute('visible', false);
-      setStatus('Hedef aranıyor...');
+    // FULL OPACITY
+    const mesh = modelEl.getObject3D("mesh");
+    mesh.traverse((node) => {
+      if (node.material) {
+        node.material.opacity = 1;
+      }
     });
 
-    // ── Sahne hazır ───────────────────────────────────
-    sceneEl.addEventListener('loaded', () => {
-      const anchorObj = anchorEl.object3D;
-      let _anchorVisible = true;
-      Object.defineProperty(anchorObj, 'visible', {
-        get: () => _anchorVisible,
-        set: (v) => { _anchorVisible = isPinned ? true : v; },
-        configurable: true,
-      });
-    });
-  })();
-  </script>
+    // ENABLE CAMERA ORBIT
+    cameraEl.setAttribute("look-controls", "enabled: true");
+
+    console.log("Pinned ✅");
+  }
+</script>
 
 </body>
 </html>
