@@ -83,7 +83,8 @@
           trackerEl.setAttribute('mindar-image-target', 'enabled', false);
           
           // UI temizliği
-          document.querySelector('#scanning-overlay').remove();
+          const overlay = document.querySelector('#scanning-overlay');
+          if(overlay) overlay.remove();
           
           console.log("Çivileme başarılı!");
         }, 1200); 
