@@ -25,6 +25,7 @@
     </div>
 
     <a-scene 
+      id="ar-scene"
       mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000;" 
       color-space="sRGB" 
       renderer="colorManagement: true, physicallyCorrectLights" 
@@ -37,52 +38,54 @@
 
       <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-      <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
-        <a-gltf-model 
-          id="frozen-model"
-          src="#avatarModel" 
-          rotation="0 0 0" 
-          position="0 0 0.001" 
-          scale="0.09 0.09 0.09"
-          animation-mixer>
-        </a-gltf-model>
-      </a-entity>
+      <a-entity id="target-tracker" mindar-image-target="targetIndex: 0"></a-entity>
+
+      <a-gltf-model 
+        id="final-model"
+        src="#avatarModel" 
+        visible="false"
+        scale="0.09 0.09 0.09"
+        animation-mixer>
+      </a-gltf-model>
     </a-scene>
 
     <script>
-      AFRAME.registerComponent('snap-to-place', {
-        init: function () {
-          const el = this.el;
-          let isFrozen = false;
+      const sceneEl = document.querySelector('a-scene');
+      const trackerEl = document.querySelector('#target-tracker');
+      const modelEl = document.querySelector('#final-model');
+      let pinned = false;
 
-          el.addEventListener('targetFound', event => {
-            if (!isFrozen) {
-              // Hedef bulundu, model tam oturana kadar 1.5 saniye bekleyelim.
-              console.log("Hedef bulundu, model yerine oturuyor...");
-              
-              setTimeout(() => {
-                // Modelin hedefe göre olan güncel konum ve rotasyonunu al.
-                const currentPosition = el.object3D.position.clone();
-                const currentRotation = el.object3D.rotation.clone();
+      trackerEl.addEventListener('targetFound', event => {
+        if (!pinned) {
+          console.log("Hedef ilk kez bulundu, çivileme işlemi başlıyor...");
+          
+          // Modelin o andaki dünya koordinatlarını (world position/rotation) yakalayalım
+          // 1 saniye bekliyoruz ki model tam yerine otursun
+          setTimeout(() => {
+            // Tracker'ın o anki konumunu ve rotasyonunu al
+            const worldPos = new THREE.Vector3();
+            trackerEl.object3D.getWorldPosition(worldPos);
+            
+            const worldQuat = new THREE.Quaternion();
+            trackerEl.object3D.getWorldQuaternion(worldQuat);
 
-                // MindAR'ın bu objeyi güncellemesini durdur.
-                // Artik model 'frozen' durumda ama kamera açık.
-                el.setAttribute('mindar-image-target', {autoUpdate: false});
-                
-                // Kaydettiğimiz değerleri modele geri vererek sabitle.
-                el.object3D.position.copy(currentPosition);
-                el.object3D.rotation.copy(currentRotation);
-                
-                isFrozen = true;
-                console.log("Model matematiksel olarak sabitlendi ve kamera açık kaldı.");
-              }, 1500); // 1.5 saniye bekletmek daha dengeli olur.
-            }
-          });
+            // Bağımsız modelimizi bu koordinatlara ışınla
+            modelEl.object3D.position.copy(worldPos);
+            modelEl.object3D.quaternion.copy(worldQuat);
+            
+            // Modeli görünür yap
+            modelEl.setAttribute('visible', 'true');
+            
+            // AR sistemini durdurmaya gerek yok ama istersen durdurabilirsin. 
+            // Model artık tracker'dan bağımsız olduğu için target kaybolsa da o gitmez.
+            pinned = true;
+            console.log("Model sahneye çivilendi.");
+            
+            // İstersen artık overlay'i tamamen kaldırabilirsin
+            document.querySelector('#scanning-overlay').remove();
+          }, 1000);
         }
       });
-
-      // Sahneye kendi component'imizi ekliyoruz.
-      document.querySelector('#target-entity').setAttribute('snap-to-place', '');
     </script>
 
   </body>
