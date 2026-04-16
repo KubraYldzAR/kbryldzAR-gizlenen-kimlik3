@@ -11,59 +11,47 @@
     <style>
       body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
       
-      /* Ana Tarama Ekranı Tasarımı */
+      /* Saf Beyaz ve Gri Minimalist Tasarım */
       #scanning-overlay {
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-        background: rgba(255, 255, 255, 0.1); /* Beyaz yoğunluk */
-        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
-        z-index: 2; transition: opacity 0.5s ease;
+        background: rgba(255, 255, 255, 0.1); 
+        backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+        z-index: 2;
       }
 
-      /* Beyaz Bilgi Kutusu */
+      /* Beyaz Bilgi Kutusu - Gri Detaylı */
       .info-card {
-        background: rgba(255, 255, 255, 0.95);
-        padding: 15px 30px; border-radius: 50px;
-        margin-bottom: 40px; border: 1px solid rgba(224, 224, 224, 0.8);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        color: #4a4a4a; /* Gri detay */
-        font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+        background: #FFFFFF;
+        padding: 12px 35px; border-radius: 50px;
+        margin-bottom: 30px; 
+        border: 1px solid #F0F0F0;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.06);
+        color: #7A7A7A; /* Yumuşak Gri */
+        font-size: 13px; font-weight: 500; letter-spacing: 1px;
+        text-transform: uppercase;
       }
 
-      /* Referans Görsel Kapsayıcı */
+      /* Referans Görsel Çerçevesi */
       .image-frame {
-        position: relative; width: 280px; height: 280px;
+        position: relative; width: 260px; height: 260px;
         display: flex; align-items: center; justify-content: center;
       }
 
       #scanning-overlay img { 
         width: 100%; height: 100%; object-fit: cover;
-        opacity: 0.4; border-radius: 20px;
-        border: 4px solid white; box-shadow: 0 0 0 1px #e0e0e0;
-      }
-
-      /* Hareketli Tarama Çizgisi */
-      .scan-line {
-        position: absolute; width: 100%; height: 2px;
-        background: linear-gradient(to right, transparent, white, transparent);
-        box-shadow: 0 0 15px white;
-        top: 0; left: 0;
-        animation: scanMove 3s infinite ease-in-out;
-      }
-
-      @keyframes scanMove {
-        0% { top: 0; opacity: 0; }
-        50% { opacity: 1; }
-        100% { top: 100%; opacity: 0; }
+        opacity: 0.45; border-radius: 16px;
+        border: 3px solid white;
+        box-shadow: 0 0 0 1px rgba(224, 224, 224, 0.5);
       }
 
       #scanning-overlay.hidden { display: none !important; }
 
-      /* Alt Kısım Tasarımı */
-      .footer-logo {
-        position: absolute; bottom: 40px; color: white;
-        text-transform: uppercase; font-size: 12px; letter-spacing: 3px;
-        opacity: 0.8; font-weight: 300;
+      .brand-footer {
+        position: absolute; bottom: 50px; color: #FFFFFF;
+        font-size: 11px; letter-spacing: 4px;
+        opacity: 0.7; font-weight: 400;
+        text-transform: uppercase;
       }
     </style>
   </head>
@@ -72,10 +60,9 @@
     <div id="scanning-overlay">
       <div class="info-card">Görseli Odaklayın</div>
       <div class="image-frame">
-        <div class="scan-line"></div>
         <img src="./IMG_0127.png">
       </div>
-      <div class="footer-logo">AR Experience</div>
+      <div class="brand-footer">Powered by Kübra Yıldız</div>
     </div>
 
     <a-scene 
@@ -104,7 +91,7 @@
     </a-scene>
 
     <script>
-      // Sizin orijinal JS mantığınız - Hiçbir değişiklik yapılmadı
+      // Orijinal Component yapın korunmuştur.
       AFRAME.registerComponent('snap-to-place', {
         init: function () {
           const el = this.el;
@@ -112,8 +99,6 @@
 
           el.addEventListener('targetFound', event => {
             if (!isFrozen) {
-              console.log("Hedef bulundu, model yerine oturuyor...");
-              
               setTimeout(() => {
                 const currentPosition = el.object3D.position.clone();
                 const currentRotation = el.object3D.rotation.clone();
@@ -124,7 +109,6 @@
                 el.object3D.rotation.copy(currentRotation);
                 
                 isFrozen = true;
-                console.log("Model matematiksel olarak sabitlendi.");
               }, 1500); 
             }
           });
