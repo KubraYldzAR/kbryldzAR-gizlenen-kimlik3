@@ -1,103 +1,89 @@
 <!DOCTYPE html>
 <html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AR Deneyimi</title>
+  <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kübra Yıldız - AR Experience</title>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
     
-    <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.1/dist/mindar-image-aframe.prod.js"></script>
-
     <style>
-        body, html {
-            margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #000;
-        }
-
-        /* Beyaz ekranı önlemek için sahne kapsayıcısı */
-        .a-canvas {
-            width: 100% !important;
-            height: 100% !important;
-            top: 0 !important;
-            left: 0 !important;
-            position: absolute !important;
-        }
-
-        #ui-container {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            display: flex; flex-direction: column; justify-content: center;
-            align-items: center; z-index: 100;
-            background: rgba(0, 0, 0, 0.3);
-            pointer-events: none;
-            transition: opacity 0.4s ease;
-        }
-
-        .instruction-text {
-            background: rgba(255, 255, 255, 0.9);
-            color: #121212; padding: 12px 24px;
-            border-radius: 25px; margin-bottom: 25px;
-            font-size: 15px; font-weight: 600;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-
-        #reference-image {
-            width: 65%; max-width: 280px;
-            opacity: 0.5; border: 2px dashed #fff;
-            border-radius: 15px;
-        }
-
-        .hidden { display: none !important; }
+      body { margin: 0; overflow: hidden; }
+      #scanning-overlay {
+        display: flex; align-items: center; justify-content: center;
+        position: absolute; left: 0; right: 0; top: 0; bottom: 0;
+        background: rgba(0, 0, 0, 0.2); z-index: 2;
+      }
+      #scanning-overlay img { width: 70%; opacity: 0.5; border: 2px solid white; border-radius: 10px; }
+      #scanning-overlay.hidden { display: none !important; }
     </style>
-</head>
-<body>
+  </head>
+  <body>
 
-    <div id="ui-container">
-        <div class="instruction-text">Lütfen Görseli Merkeze Alın</div>
-        <img id="reference-image" src="IMG_0127.png">
+    <div id="scanning-overlay">
+      <img src="./IMG_0127.png">
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; uiLoading: no; uiScanning: no;" 
-        embedded 
-        color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
-        vr-mode-ui="enabled: false" 
-        device-orientation-permission-ui="enabled: false">
-        
-        <a-assets>
-            <a-asset-item id="modelAsset" src="elifiki.glb"></a-asset-item>
-        </a-assets>
+      mindar-image="imageTargetSrc: ./targets.mind; uiScanning: #scanning-overlay; filterMinCF: 0.0001; filterBeta: 1000;" 
+      color-space="sRGB" 
+      renderer="colorManagement: true, physicallyCorrectLights" 
+      vr-mode-ui="enabled: false" 
+      device-orientation-permission-ui="enabled: false">
+      
+      <a-assets>
+        <a-asset-item id="avatarModel" src="./elifiki.glb"></a-asset-item>
+      </a-assets>
 
-        <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+      <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
 
-        <a-entity mindar-image-target="targetIndex: 0" id="target-entity">
-            <a-gltf-model 
-                src="#modelAsset" 
-                position="0 0 0" 
-                scale="1 1 1" 
-                rotation="0 0 0" 
-                animation-mixer>
-            </a-gltf-model>
-        </a-entity>
+      <a-entity id="target-entity" mindar-image-target="targetIndex: 0">
+        <a-gltf-model 
+          id="frozen-model"
+          src="#avatarModel" 
+          rotation="0 0 0" 
+          position="0 0 0.001" 
+          scale="0.09 0.09 0.09"
+          animation-mixer>
+        </a-gltf-model>
+      </a-entity>
     </a-scene>
 
     <script>
-        document.addEventListener("DOMContentLoaded", () => {
-            const targetEntity = document.querySelector('#target-entity');
-            const uiContainer = document.querySelector('#ui-container');
+      AFRAME.registerComponent('snap-to-place', {
+        init: function () {
+          const el = this.el;
+          let isFrozen = false;
 
-            // Hedef algılandığında UI'ı gizle
-            targetEntity.addEventListener("targetFound", () => {
-                console.log("Hedef Algılandı!");
-                uiContainer.classList.add('hidden');
-            });
+          el.addEventListener('targetFound', event => {
+            if (!isFrozen) {
+              // Hedef bulundu, model tam oturana kadar 1.5 saniye bekleyelim.
+              console.log("Hedef bulundu, model yerine oturuyor...");
+              
+              setTimeout(() => {
+                // Modelin hedefe göre olan güncel konum ve rotasyonunu al.
+                const currentPosition = el.object3D.position.clone();
+                const currentRotation = el.object3D.rotation.clone();
 
-            // Hedef kaybolunca UI'ı tekrar göster
-            targetEntity.addEventListener("targetLost", () => {
-                uiContainer.classList.remove('hidden');
-            });
-        });
+                // MindAR'ın bu objeyi güncellemesini durdur.
+                // Artik model 'frozen' durumda ama kamera açık.
+                el.setAttribute('mindar-image-target', {autoUpdate: false});
+                
+                // Kaydettiğimiz değerleri modele geri vererek sabitle.
+                el.object3D.position.copy(currentPosition);
+                el.object3D.rotation.copy(currentRotation);
+                
+                isFrozen = true;
+                console.log("Model matematiksel olarak sabitlendi ve kamera açık kaldı.");
+              }, 1500); // 1.5 saniye bekletmek daha dengeli olur.
+            }
+          });
+        }
+      });
+
+      // Sahneye kendi component'imizi ekliyoruz.
+      document.querySelector('#target-entity').setAttribute('snap-to-place', '');
     </script>
-</body>
+
+  </body>
 </html>
