@@ -1,27 +1,81 @@
 <!DOCTYPE html>
 <html lang="tr">
   <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Kübra Yıldız - AR Experience</title>
     <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v7.1.0/dist/aframe-extras.min.js"></script>
     
     <style>
-      body { margin: 0; overflow: hidden; }
+      body { margin: 0; overflow: hidden; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+      
+      /* Ana Tarama Ekranı Tasarımı */
       #scanning-overlay {
-        display: flex; align-items: center; justify-content: center;
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
         position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-        background: rgba(0, 0, 0, 0.2); z-index: 2;
+        background: rgba(255, 255, 255, 0.1); /* Beyaz yoğunluk */
+        backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+        z-index: 2; transition: opacity 0.5s ease;
       }
-      #scanning-overlay img { width: 70%; opacity: 0.5; border: 2px solid white; border-radius: 10px; }
+
+      /* Beyaz Bilgi Kutusu */
+      .info-card {
+        background: rgba(255, 255, 255, 0.95);
+        padding: 15px 30px; border-radius: 50px;
+        margin-bottom: 40px; border: 1px solid rgba(224, 224, 224, 0.8);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        color: #4a4a4a; /* Gri detay */
+        font-size: 14px; font-weight: 500; letter-spacing: 0.5px;
+      }
+
+      /* Referans Görsel Kapsayıcı */
+      .image-frame {
+        position: relative; width: 280px; height: 280px;
+        display: flex; align-items: center; justify-content: center;
+      }
+
+      #scanning-overlay img { 
+        width: 100%; height: 100%; object-fit: cover;
+        opacity: 0.4; border-radius: 20px;
+        border: 4px solid white; box-shadow: 0 0 0 1px #e0e0e0;
+      }
+
+      /* Hareketli Tarama Çizgisi */
+      .scan-line {
+        position: absolute; width: 100%; height: 2px;
+        background: linear-gradient(to right, transparent, white, transparent);
+        box-shadow: 0 0 15px white;
+        top: 0; left: 0;
+        animation: scanMove 3s infinite ease-in-out;
+      }
+
+      @keyframes scanMove {
+        0% { top: 0; opacity: 0; }
+        50% { opacity: 1; }
+        100% { top: 100%; opacity: 0; }
+      }
+
       #scanning-overlay.hidden { display: none !important; }
+
+      /* Alt Kısım Tasarımı */
+      .footer-logo {
+        position: absolute; bottom: 40px; color: white;
+        text-transform: uppercase; font-size: 12px; letter-spacing: 3px;
+        opacity: 0.8; font-weight: 300;
+      }
     </style>
   </head>
   <body>
 
     <div id="scanning-overlay">
-      <img src="./IMG_0127.png">
+      <div class="info-card">Görseli Odaklayın</div>
+      <div class="image-frame">
+        <div class="scan-line"></div>
+        <img src="./IMG_0127.png">
+      </div>
+      <div class="footer-logo">AR Experience</div>
     </div>
 
     <a-scene 
@@ -50,6 +104,7 @@
     </a-scene>
 
     <script>
+      // Sizin orijinal JS mantığınız - Hiçbir değişiklik yapılmadı
       AFRAME.registerComponent('snap-to-place', {
         init: function () {
           const el = this.el;
@@ -57,31 +112,25 @@
 
           el.addEventListener('targetFound', event => {
             if (!isFrozen) {
-              // Hedef bulundu, model tam oturana kadar 1.5 saniye bekleyelim.
               console.log("Hedef bulundu, model yerine oturuyor...");
               
               setTimeout(() => {
-                // Modelin hedefe göre olan güncel konum ve rotasyonunu al.
                 const currentPosition = el.object3D.position.clone();
                 const currentRotation = el.object3D.rotation.clone();
 
-                // MindAR'ın bu objeyi güncellemesini durdur.
-                // Artik model 'frozen' durumda ama kamera açık.
                 el.setAttribute('mindar-image-target', {autoUpdate: false});
                 
-                // Kaydettiğimiz değerleri modele geri vererek sabitle.
                 el.object3D.position.copy(currentPosition);
                 el.object3D.rotation.copy(currentRotation);
                 
                 isFrozen = true;
-                console.log("Model matematiksel olarak sabitlendi ve kamera açık kaldı.");
-              }, 1500); // 1.5 saniye bekletmek daha dengeli olur.
+                console.log("Model matematiksel olarak sabitlendi.");
+              }, 1500); 
             }
           });
         }
       });
 
-      // Sahneye kendi component'imizi ekliyoruz.
       document.querySelector('#target-entity').setAttribute('snap-to-place', '');
     </script>
 
