@@ -38,52 +38,56 @@
       <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
-        <a-gltf-model 
-          id="my-model"
-          src="#avatarModel" 
-          position="0 0 0" 
-          scale="0.09 0.09 0.09"
-          animation-mixer>
-        </a-gltf-model>
+        <a-entity id="placeholder-point"></a-entity>
       </a-entity>
+
+      <a-entity id="world-anchor"></a-entity>
     </a-scene>
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const modelEl = document.querySelector('#my-model');
+      const anchorEl = document.querySelector('#world-anchor');
+      const sceneEl = document.querySelector('a-scene');
       let isPinned = false;
 
-      // Hedef (Kağıt) ilk bulunduğunda tetiklenir
       trackerEl.addEventListener('targetFound', () => {
         if (isPinned) return;
 
-        console.log("Hedef bulundu, çivileme işlemi başlıyor...");
+        console.log("Hedef bulundu, titremesiz sabitleme başlıyor...");
         
-        // Modelin titremesinin geçmesi için 1.5 saniye bekle
+        // 1 saniye sonra konumu dondur (En net anı yakalamak için)
         setTimeout(() => {
-          // 1. ÖNEMLİ: Takibi durdur (Kağıt hareket etse de model yerinde kalır)
-          trackerEl.setAttribute('mindar-image-target', 'autoUpdate', false);
+          // 1. Tracker'ın dünyadaki o saniyedeki TAM konumunu ve açısını al
+          const worldPos = new THREE.Vector3();
+          trackerEl.object3D.getWorldPosition(worldPos);
           
-          // 2. ÖNEMLİ: Görünürlüğü zorla açık tut
-          trackerEl.object3D.visible = true; 
+          const worldQuat = new THREE.Quaternion();
+          trackerEl.object3D.getWorldQuaternion(worldQuat);
 
-          isPinned = true;
+          // 2. Yeni bir model elementi oluştur (Mevcut olanı taşımak yerine yeni oluşturmak daha temizdir)
+          const pinnedModel = document.createElement('a-gltf-model');
+          pinnedModel.setAttribute('src', '#avatarModel');
+          pinnedModel.setAttribute('scale', '0.09 0.09 0.09');
+          pinnedModel.setAttribute('animation-mixer', '');
           
-          // UI'ı temizle
-          const overlay = document.querySelector('#scanning-overlay');
-          if(overlay) overlay.style.display = 'none';
-          
-          console.log("Model koordinata çivilendi!");
-        }, 1500);
-      });
+          // 3. Modeli tracker'ın değil, doğrudan sahnenin bir parçası yap (Anchor içine ekle)
+          anchorEl.appendChild(pinnedModel);
 
-      // MindAR kağıdı görmeyi bıraktığında tetiklenir
-      trackerEl.addEventListener('targetLost', () => {
-        if (isPinned) {
-          // Kağıt kaybolsa bile modelin görünür kalmasını sağlayan KRİTİK satır:
-          trackerEl.object3D.visible = true; 
-          console.log("Hedef kayboldu ama model hala sahnede!");
-        }
+          // 4. Model yüklenince yakaladığımız o sabit dünya koordinatlarına oturt
+          pinnedModel.addEventListener('model-loaded', () => {
+            pinnedModel.object3D.position.copy(worldPos);
+            pinnedModel.object3D.quaternion.copy(worldQuat);
+            
+            // Artık MindAR bu modeli asla güncelleyemez veya titretmez!
+            isPinned = true;
+            
+            // Tracker'ı ve Overlay'i komple devredışı bırak
+            trackerEl.setAttribute('mindar-image-target', 'enabled', false);
+            document.querySelector('#scanning-overlay').remove();
+            
+            console.log("Çivi gibi çakıldı!");
+          });
+        }, 1000);
       });
     </script>
   </body>
