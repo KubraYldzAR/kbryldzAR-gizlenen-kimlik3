@@ -14,17 +14,11 @@
       background: black;
     }
 
-    a-scene {
-      position: fixed;
-      width: 100%;
-      height: 100%;
-    }
-
     #startUI {
       position: fixed;
       width: 100%;
       height: 100%;
-      background: rgba(0,0,0,0.85);
+      background: rgba(0,0,0,0.9);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -32,22 +26,28 @@
     }
 
     #startBtn {
-      padding: 18px 32px;
+      padding: 18px 30px;
       font-size: 18px;
       border-radius: 12px;
       border: none;
       background: white;
-      color: black;
     }
 
-    #guide {
-      position: fixed;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 140px;
-      z-index: 5;
-      opacity: 0.8;
+    video {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover;
+      z-index: 1;
+    }
+
+    canvas {
+      position: fixed !important;
+      top: 0;
+      left: 0;
+      z-index: 2;
     }
   </style>
 </head>
@@ -58,12 +58,12 @@
   <button id="startBtn">Start AR</button>
 </div>
 
-<img id="guide" src="./IMG_0127.png" />
-
 <a-scene
   mindar-image="imageTargetSrc: ./targets.mind; autoStart: false;"
+  embedded
   vr-mode-ui="enabled: false"
   device-orientation-permission-ui="enabled: false"
+  renderer="logarithmicDepthBuffer: true;"
 >
 
   <a-assets>
@@ -91,79 +91,81 @@ let pinned = false;
 let tracking = false;
 let timer = null;
 
-// 🔥 START (KESİN ÇALIŞIR)
-startBtn.addEventListener("click", async () => {
-  startUI.style.display = "none";
-  await sceneEl.systems["mindar-image-system"].start();
+// 🔥 iOS CAMERA FIX
+sceneEl.addEventListener("renderstart", () => {
+  const video = document.querySelector("video");
+  if (video) {
+    video.setAttribute("playsinline", true);
+    video.setAttribute("muted", true);
+    video.setAttribute("autoplay", true);
+  }
 });
 
-// MODEL → YARI ŞEFFAF
+// START
+startBtn.addEventListener("click", async () => {
+  try {
+    await sceneEl.systems["mindar-image-system"].start();
+    startUI.style.display = "none";
+  } catch (e) {
+    alert("Camera error: " + e);
+  }
+});
+
+// MODEL
 modelEl.addEventListener("model-loaded", () => {
   const mesh = modelEl.getObject3D("mesh");
-
-  mesh.traverse((node) => {
-    if (node.material) {
-      node.material.transparent = true;
-      node.material.opacity = 0.5;
+  mesh.traverse((n) => {
+    if (n.material) {
+      n.material.transparent = true;
+      n.material.opacity = 0.5;
     }
   });
 });
 
-// TARGET FOUND
+// TRACK
 targetEl.addEventListener("targetFound", () => {
   if (pinned) return;
 
   tracking = true;
 
   timer = setTimeout(() => {
-    if (tracking && !pinned) {
-      pinModel();
-    }
+    if (tracking && !pinned) pin();
   }, 1200);
 });
 
-// TARGET LOST
 targetEl.addEventListener("targetLost", () => {
   tracking = false;
-
-  if (timer) {
-    clearTimeout(timer);
-    timer = null;
-  }
+  if (timer) clearTimeout(timer);
 });
 
-// 🔒 PIN LOGIC
-function pinModel() {
+// PIN
+function pin() {
   pinned = true;
 
   const obj = modelEl.object3D;
-
   obj.updateMatrixWorld(true);
 
-  const worldMatrix = obj.matrixWorld.clone();
+  const m = obj.matrixWorld.clone();
 
   obj.matrixAutoUpdate = false;
-  obj.matrix.copy(worldMatrix);
+  obj.matrix.copy(m);
   obj.matrix.decompose(obj.position, obj.quaternion, obj.scale);
 
-  // 🚫 KAYBOLMAYI ENGELLE
   Object.defineProperty(obj, "visible", {
     get: () => true,
     set: () => {}
   });
 
-  // FULL OPACITY
   const mesh = modelEl.getObject3D("mesh");
-  mesh.traverse((node) => {
-    if (node.material) {
-      node.material.opacity = 1;
-    }
+  mesh.traverse((n) => {
+    if (n.material) n.material.opacity = 1;
   });
 
-  // 🎥 SERBEST GEZİNME
+  targetEl.setAttribute("mindar-image-target", "enabled: false");
+
   cameraEl.setAttribute("look-controls", "enabled: true");
 
-  console.log("Pinned ✅");
+  console.log("PIN OK");
 }
 </script>
 
