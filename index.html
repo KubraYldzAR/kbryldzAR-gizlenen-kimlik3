@@ -38,55 +38,52 @@
       <a-camera position="0 0 0" look-controls="enabled: true"></a-camera>
 
       <a-entity id="target-tracker" mindar-image-target="targetIndex: 0">
-          <a-entity id="marker-point"></a-entity>
+        <a-gltf-model 
+          id="my-model"
+          src="#avatarModel" 
+          position="0 0 0" 
+          scale="0.09 0.09 0.09"
+          animation-mixer>
+        </a-gltf-model>
       </a-entity>
-
-      <a-gltf-model 
-        id="final-model"
-        src="#avatarModel" 
-        visible="false"
-        scale="0.09 0.09 0.09"
-        animation-mixer>
-      </a-gltf-model>
     </a-scene>
 
     <script>
       const trackerEl = document.querySelector('#target-tracker');
-      const markerPoint = document.querySelector('#marker-point');
-      const modelEl = document.querySelector('#final-model');
+      const modelEl = document.querySelector('#my-model');
+      const sceneEl = document.querySelector('a-scene');
       let isPinned = false;
 
       trackerEl.addEventListener('targetFound', () => {
         if (isPinned) return;
         
-        console.log("Hedef bulundu, model sabitleniyor...");
+        console.log("Hedef bulundu, model çivileniyor...");
 
-        // Modelin hedefe tam oturması için en güvenli bekleme süresi
+        // Modelin yerine tam oturması için 1 saniye bekliyoruz
         setTimeout(() => {
-          // 1. Tracker üzerindeki marker'ın dünya koordinatlarını al
+          // 1. Modelin o anki dünya koordinatlarını (world position) al
           const worldPos = new THREE.Vector3();
-          markerPoint.object3D.getWorldPosition(worldPos);
+          modelEl.object3D.getWorldPosition(worldPos);
           
           const worldQuat = new THREE.Quaternion();
-          markerPoint.object3D.getWorldQuaternion(worldQuat);
+          modelEl.object3D.getWorldQuaternion(worldQuat);
 
-          // 2. Sahnede halihazırda bekleyen modeli bu koordinatlara taşı
+          // 2. Modeli tracker'dan sök ve doğrudan sahneye (scene) bağla
+          // Bu, MindAR'ın modeli gizlemesine veya titretmesine engel olur
+          sceneEl.object3D.add(modelEl.object3D);
+
+          // 3. Modeli az önce kaydettiğimiz koordinatlara geri oturt
           modelEl.object3D.position.copy(worldPos);
           modelEl.object3D.quaternion.copy(worldQuat);
           
-          // 3. Modeli görünür yap ve animasyonu başlat
-          modelEl.setAttribute('visible', 'true');
-          
           isPinned = true;
           
-          // 4. MindAR'ın bu hedefle işini bitir (Takibi durdur)
+          // 4. Takipçiyi ve UI'ı tamamen kapat
           trackerEl.setAttribute('mindar-image-target', 'enabled', false);
-          
-          // UI temizliği
           const overlay = document.querySelector('#scanning-overlay');
           if(overlay) overlay.remove();
           
-          console.log("Çivileme başarılı!");
+          console.log("Çivileme başarılı! Model artık bağımsız.");
         }, 1200); 
       });
     </script>
