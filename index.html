@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Kübra Yıldız AR Deneyimi</title>
+    <title>AR Deneyim</title>
     
     <script src="https://aframe.io/releases/1.3.0/aframe.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/donmccurdy/aframe-extras@v6.1.1/dist/aframe-extras.min.js"></script>
@@ -12,63 +12,57 @@
     <style>
         body, html {
             margin: 0; padding: 0; width: 100%; height: 100%;
-            overflow: hidden; background-color: #000;
+            overflow: hidden; background-color: transparent; /* Siyahlığı önlemek için */
         }
 
-        #loading-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: #121212; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; z-index: 9999;
-            color: white; font-family: sans-serif;
+        /* Kamera görüntüsünün öne gelmesini sağlayan kritik ayar */
+        video {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100% !important;
+            height: 100% !important;
+            object-fit: cover !important;
+            z-index: -1; /* Sahnenin arkasında kalmalı */
         }
 
-        /* Modern şık arayüz */
         #ui-container {
-            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; flex-direction: column; justify-content: center;
-            align-items: center; z-index: 10;
-            background: rgba(0, 0, 0, 0.5);
-            transition: opacity 0.4s ease;
+            align-items: center; z-index: 100;
+            background: rgba(0, 0, 0, 0.2);
             pointer-events: none;
+            transition: opacity 0.4s ease;
         }
 
         .instruction-text {
-            background: rgba(255, 255, 255, 0.15);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            color: white; padding: 15px 30px;
-            border-radius: 30px; margin-bottom: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            font-size: 14px; letter-spacing: 1px;
+            background: rgba(255, 255, 255, 0.8);
+            color: #000; padding: 10px 20px;
+            border-radius: 20px; margin-bottom: 20px;
+            font-size: 14px; font-weight: bold;
         }
 
         #reference-image {
-            width: 70%; max-width: 300px;
-            opacity: 0.4; border: 2px solid #fff;
-            border-radius: 15px; box-shadow: 0 0 20px rgba(255,255,255,0.2);
+            width: 60%; max-width: 250px;
+            opacity: 0.5; border: 2px dashed #fff;
+            border-radius: 10px;
         }
 
-        .hidden { opacity: 0 !important; }
+        .hidden { display: none !important; }
     </style>
 </head>
 <body>
 
-    <div id="loading-screen">
-        <p>AR Deneyimi Yükleniyor...</p>
-        <small style="margin-top: 10px; opacity: 0.6;">Lütfen kamera iznini onaylayın</small>
-    </div>
-
-    <div id="ui-container" class="hidden">
+    <div id="ui-container">
         <div class="instruction-text">GÖRSELİ TARAYIN</div>
         <img id="reference-image" src="IMG_0127.png">
     </div>
 
     <a-scene 
-        mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; autoStart: false; uiLoading: no; uiError: no; uiScanning: no;" 
+        mindar-image="imageTargetSrc: targets.mind; filterMinCF: 0.0001; filterBeta: 0.001; uiLoading: no; uiError: no; uiScanning: no;" 
         embedded
         color-space="sRGB" 
-        renderer="colorManagement: true, physicallyCorrectLights" 
-        vr-mode-ui="enabled: false" 
+        renderer="colorManagement: true, physicallyCorrectLights, preserveDrawingBuffer: true" 
+        vr-mode-ui="enabled: false"
         device-orientation-permission-ui="enabled: false">
         
         <a-assets>
@@ -83,38 +77,22 @@
     </a-scene>
 
     <script>
-        const sceneEl = document.querySelector('a-scene');
-        const uiContainer = document.querySelector('#ui-container');
-        const loadingScreen = document.querySelector('#loading-screen');
         const targetEntity = document.querySelector('#target-entity');
+        const uiContainer = document.querySelector('#ui-container');
 
-        // Sayfa yüklendiğinde AR'ı başlat
-        window.addEventListener("load", () => {
-            // A-Frame hazır olduğunda MindAR'ı manuel tetikle
-            if (sceneEl.hasLoaded) {
-                startAR();
-            } else {
-                sceneEl.addEventListener("loaded", startAR);
-            }
+        targetEntity.addEventListener("targetFound", () => {
+            uiContainer.classList.add('hidden');
         });
 
-        function startAR() {
-            const arSystem = sceneEl.systems["mindar-image-system"];
-            arSystem.start(); 
-            
-            sceneEl.addEventListener("arReady", () => {
-                loadingScreen.classList.add('hidden');
-                uiContainer.classList.remove('hidden');
-            });
+        targetEntity.addEventListener("targetLost", () => {
+            uiContainer.classList.remove('hidden');
+        });
 
-            sceneEl.addEventListener("arError", () => {
-                alert("Kamera başlatılamadı. Lütfen HTTPS bağlantısını ve izinleri kontrol edin.");
-            });
-        }
-
-        // Görseli görünce UI gizle, kaybedince göster
-        targetEntity.addEventListener("targetFound", () => uiContainer.classList.add('hidden'));
-        targetEntity.addEventListener("targetLost", () => uiContainer.classList.remove('hidden'));
+        // iOS Chrome/Safari için otomatik video oynatma zorlaması
+        document.addEventListener('click', () => {
+            const video = document.querySelector('video');
+            if (video) video.play();
+        }, { once: true });
     </script>
 </body>
 </html>
